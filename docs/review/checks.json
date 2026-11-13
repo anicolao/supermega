@@ -1,0 +1,50 @@
+[
+  {
+    "name": "phone",
+    "width": 390,
+    "height": 844,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  },
+  {
+    "name": "small-phone",
+    "width": 320,
+    "height": 740,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  },
+  {
+    "name": "tablet",
+    "width": 834,
+    "height": 1194,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  },
+  {
+    "name": "tablet-landscape",
+    "width": 1024,
+    "height": 768,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  },
+  {
+    "name": "laptop",
+    "width": 1440,
+    "height": 1000,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  },
+  {
+    "name": "tabletop",
+    "width": 3840,
+    "height": 2160,
+    "overflow": false,
+    "minimumHitWidth": 44,
+    "flows": "direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset"
+  }
+]

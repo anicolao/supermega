@@ -1,0 +1,128 @@
+import { chromium, expect } from '@playwright/test';
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+const url=process.env.REVIEW_URL??'http://127.0.0.1:5197';
+await mkdir('docs/review',{recursive:true});
+const browser=await chromium.launch();
+const errors=[];
+const checks=[];
+try {
+ for(const [name,width,height] of [['phone',390,844],['small-phone',320,740],['tablet',834,1194],['tablet-landscape',1024,768],['laptop',1440,1000],['tabletop',3840,2160]]) {
+  const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url+(name==='tabletop'?'/tabletop/':'/'));
+  await page.locator('#table-cards .lucky-card').first().waitFor();
+  await page.evaluate(()=>document.fonts.ready);
+  await expect.poll(()=>page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);
+  assert.match(await page.title(),/Super Mega Lucky Box/);
+  const measures=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth,targets:[...document.querySelectorAll('#lucky-grid .number-cell, #table-cards .number-cell, #table-cards button.reward-slot, #lucky-grid button.reward-slot, .inspect-piece')].map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};})}));
+  assert.ok(measures.scroll<=width,`${name} horizontal overflow: ${measures.scroll}`);
+  const tooSmall=measures.targets.filter(t=>t.width<43.9||t.height<43.9);
+  assert.equal(tooSmall.length,0,`${name}: ${JSON.stringify(tooSmall)}`);
+  await page.screenshot({path:`docs/review/${name}-opening.png`});
+  await page.locator('#review').scrollIntoViewIfNeeded();
+  await page.locator('#play-table').screenshot({path:`docs/review/${name}-table.png`});
+  const rowBonus=page.locator('#table-cards [data-card="coral-01"][data-bonus="0"]');
+  const columnBonus=page.locator('#table-cards [data-card="coral-01"][data-bonus="3"]');
+  const rewardSizes=await page.locator('#table-cards [data-card-id="coral-01"] .reward').evaluateAll(elements=>elements.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})));
+  assert.ok(rewardSizes.every(size=>Math.abs(size.w-size.h)<.1&&Math.abs(size.w-rewardSizes[0].w)<.1),'Row and column reward art must be identical squares');
+  await columnBonus.click();
+  assert.equal(await columnBonus.getAttribute('data-bonus-state'),'applied');
+  await page.locator('#table-feedback [data-action="undo"]').click();
+  assert.equal(await columnBonus.getAttribute('data-bonus-state'),'pending');
+  const square=page.locator('#table-cards [data-card="coral-01"][data-cell="2"]');
+  await square.click();
+  assert.equal(await page.locator('#table-cards [data-card-id="coral-01"] .reward-slot:not([data-bonus-state="unearned"])').count(),2);
+  assert.equal(await square.getAttribute('aria-pressed'),'true');
+  assert.equal(await square.locator('.ink-cross').count(),1);
+  assert.equal(await rowBonus.getAttribute('data-bonus-state'),'pending');
+  await rowBonus.click();
+  assert.equal(await rowBonus.getAttribute('data-bonus-state'),'applied');
+  assert.equal(await columnBonus.getAttribute('data-bonus-state'),'pending');
+  await page.locator('#play-table').screenshot({path:`docs/review/${name}-bonus-states.png`});
+  await page.locator('#table-feedback [data-action="undo"]').click();
+  assert.equal(await rowBonus.getAttribute('data-bonus-state'),'pending');
+  await page.locator('#table-feedback [data-action="undo"]').click();
+  assert.equal(await square.locator('.ink-cross').count(),0);
+  assert.equal(await page.locator('#table-cards [data-card-id="coral-01"] .reward-slot:not([data-bonus-state="unearned"])').count(),1);
+  assert.equal(await square.getAttribute('aria-pressed'),'false');
+  await page.locator('#table-cards [data-card="coral-01"][data-cell="0"]').click();
+  assert.match(await page.locator('#table-feedback').innerText(),/already marked/);
+  assert.equal(await square.getAttribute('aria-pressed'),'false');
+  assert.equal(await page.locator('.is-rejected, .is-unavailable, .is-pending, .state-specimens, .state-key').count(),0);
+  await page.locator('#play-table').screenshot({path:`docs/review/${name}-invalid-action.png`});
+  await square.focus(); await page.keyboard.press('Enter');
+  assert.equal(await square.getAttribute('aria-pressed'),'true');
+  assert.match(await square.getAttribute('class'),/is-marked/);
+  const inspector=page.locator('#table-cards [data-card="coral-01"][data-action="inspect"]');
+  await inspector.click();
+  assert.equal(await page.locator('#inspection-art [data-cell="2"]').getAttribute('aria-pressed'),'true');
+  await page.locator('#inspection-art [data-cell="4"]').click();
+  assert.equal(await page.locator('#table-cards [data-card="coral-01"][data-cell="4"]').getAttribute('aria-pressed'),'true');
+  await page.locator('#inspection-feedback [data-action="undo"]').click();
+  assert.equal(await page.locator('#table-cards [data-card="coral-01"][data-cell="4"]').getAttribute('aria-pressed'),'false');
+  assert.equal(await square.getAttribute('aria-pressed'),'true');
+  await page.locator('#inspection-art [data-cell="4"]').click();
+  await page.screenshot({path:`docs/review/${name}-inspection.png`});
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
+  // The original inspector control may have been rerendered; focus must follow its identity.
+  await expect(inspector).toBeFocused();
+  await page.locator('#table-feedback [data-action="undo"]').click();
+  await page.locator('#table-feedback [data-action="undo"]').click();
+  assert.equal(await square.getAttribute('aria-pressed'),'false');
+  assert.equal(await page.locator('#table-cards [data-card="coral-01"][data-cell="0"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#table-feedback [data-action="undo"]').count(),0);
+  await page.locator('#surface-toggle').click();
+  await page.locator('#play-table').screenshot({path:`docs/review/${name}-dark.png`});
+  await page.locator('#reset-lab').click();
+  assert.equal(await square.getAttribute('aria-pressed'),'false');
+  if(name!=='tabletop') {
+   assert.equal(await page.locator('#card-backs .lucky-back').count(),1);
+   assert.equal(await page.locator('#card-backs .number-back').count(),1);
+   await page.locator('#card-backs').screenshot({path:`docs/review/${name}-card-backs.png`});
+   await page.locator('[data-filter="fresh"]').click();
+   assert.equal(await page.locator('#lucky-grid .lucky-card').count(),2);
+   await page.locator('[data-filter="complete"]').click();
+   assert.equal(await page.locator('#lucky-grid .lucky-card').count(),1);
+   await page.locator('[data-filter="all"]').click();
+   await page.locator('#flip-cards').click();assert.equal(await page.locator('#lucky-grid .card-back').count(),6);
+   await page.locator('#flip-cards').click();
+   await page.locator('#flip-numbers').click();assert.equal(await page.locator('#number-collection .number-back').count(),9);
+   await expect.poll(()=>page.locator('#number-collection img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);
+   await page.locator('#flip-numbers').click();
+   await page.locator('[data-player="5"]').click();assert.match(await page.locator('#score-card').innerText(),/Morgan/);
+   await page.locator('#score-flip').click();assert.match(await page.locator('#score-card').innerText(),/SOLO MOONS/);
+   await page.locator('#score-flip').click();
+   await page.locator('.token-composition [data-token="bolt-a"]').click();
+   assert.equal(await page.locator('[data-token="bolt-a"]').getAttribute('aria-pressed'),'true');
+  }
+  if(name==='laptop') {
+   await page.locator('#tokens').screenshot({path:'docs/review/tokens.png'});
+   await page.locator('#boards').screenshot({path:'docs/review/scorecards.png'});
+   const grayscale=await page.addStyleTag({content:'body{filter:grayscale(1)}'});
+   await page.locator('#play-table').screenshot({path:'docs/review/grayscale-table.png'});
+   await grayscale.evaluate(el=>el.remove());
+  }
+  if(name==='tabletop') {
+   assert.equal(await page.locator('.tabletop-center .token-piece').count(),0);
+   assert.equal(await page.locator('.tabletop-center .card-back').count(),2);
+   await page.locator('.tabletop-board').screenshot({path:'docs/review/tabletop-four-seats.png'});
+  }
+  checks.push({name,width,height,overflow:false,minimumHitWidth:Math.min(...measures.targets.map(t=>t.width)),flows:'direct mark, bonus pending/apply/undo, consistent circular rewards, multi-step undo, invalid-action feedback, keyboard marking, inspect, identity, focus return, reset'});
+  await page.close();
+ }
+ const motionPage=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'no-preference'});
+ await motionPage.goto(url);
+ const pendingArt=motionPage.locator('#table-cards [data-bonus-state="pending"] .reward').first();
+ await pendingArt.waitFor();
+ assert.notEqual(await pendingArt.evaluate(el=>getComputedStyle(el,'::after').animationName),'none');
+ await motionPage.emulateMedia({reducedMotion:'reduce'});
+ assert.equal(await pendingArt.evaluate(el=>getComputedStyle(el,'::after').animationName),'none');
+ assert.equal(await motionPage.locator('#table-cards [data-bonus-state="pending"]').count(),1);
+ await motionPage.close();
+ assert.deepEqual(errors,[]);
+ await writeFile('docs/review/checks.json',JSON.stringify(checks,null,2)+'\n');
+ console.log('Passed: phone, small phone, tablet portrait/landscape, laptop, 4K tabletop; no overflow or page errors; all mark targets ≥44px.');
+ console.log('Passed: row/column bonus geometry, pending/apply/undo, direct marking, multi-step undo, invalid-action feedback, keyboard activation, inspection identity and focus restoration, filters, reverses, player variants, tokens.');
+} finally {await browser.close();}

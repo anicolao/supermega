@@ -1,0 +1,130 @@
+[
+  {
+    "id": "card",
+    "source": "art/source/card.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/card.webp"
+  },
+  {
+    "id": "well",
+    "source": "art/source/well.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/well.webp"
+  },
+  {
+    "id": "bolt",
+    "source": "art/source/bolt.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/bolt.webp"
+  },
+  {
+    "id": "moon",
+    "source": "art/source/moon.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/moon.webp"
+  },
+  {
+    "id": "number",
+    "source": "art/source/number.png",
+    "width": 1060,
+    "height": 1484,
+    "alpha": true,
+    "runtime": "/assets/generated/number.webp"
+  },
+  {
+    "id": "back",
+    "source": "art/source/back.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/back.webp"
+  },
+  {
+    "id": "star",
+    "source": "art/source/star.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/star.webp"
+  },
+  {
+    "id": "score",
+    "source": "art/source/score.png",
+    "width": 1060,
+    "height": 1484,
+    "alpha": true,
+    "runtime": "/assets/generated/score.webp"
+  },
+  {
+    "id": "marker",
+    "source": "art/source/marker.png",
+    "width": 2172,
+    "height": 724,
+    "alpha": true,
+    "runtime": "/assets/generated/marker.webp"
+  },
+  {
+    "id": "mat",
+    "source": "art/source/mat.png",
+    "width": 1536,
+    "height": 1024,
+    "alpha": true,
+    "runtime": "/assets/generated/mat.webp"
+  },
+  {
+    "id": "lilac",
+    "source": "art/source/lilac.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/lilac.webp"
+  },
+  {
+    "id": "sage",
+    "source": "art/source/sage.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/sage.webp"
+  },
+  {
+    "id": "honey",
+    "source": "art/source/honey.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/honey.webp"
+  },
+  {
+    "id": "sky",
+    "source": "art/source/sky.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/sky.webp"
+  },
+  {
+    "id": "rose",
+    "source": "art/source/rose.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/rose.webp"
+  },
+  {
+    "id": "numberback",
+    "source": "art/source/numberback.png",
+    "width": 1060,
+    "height": 1484,
+    "alpha": true,
+    "runtime": "/assets/generated/numberback.webp"
+  }
+]

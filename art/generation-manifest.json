@@ -1,0 +1,104 @@
+[
+  {
+    "id": "card",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Asset type: production game card-body layer, not a UI mockup. Generate one beautiful tactile Lucky Box card body, exactly front-facing orthographic, square 1:1 shape, centered occupying 96% of canvas with fully transparent exterior. Intended display 260–380 CSS px, minimum 240 px; essential live number grid will be separately composited into the empty interior. Whimsical premium retro carnival board-game aesthetic: richly painted glazed coral-red and warm burnt-orange enamel frame, softly rounded chunky corners, gold inlaid bevels, subtle printed halftone and painterly wear, dimensional highlights from upper left, strong coherent silhouette. Decorative broad flowing bands integrated into the frame, no separate collectibles. Reserve a HUGE perfectly quiet light ivory rectangular recessed inner face covering x=10% to90%, y=15% to88%. Inner face completely empty, no lines or grid, it will hold a 3x3 grid and rewards added separately. Reserve small quiet top nameplate in the border. Outer border broad but not bulky, beautiful illustrated sculpted construction, natural material detail visible at actual small display size. No text, no numbers, no letters, no symbols, no surrounding surface, no perspective tilt, no cast shadow outside the object. This is an actual transparent production component image layer, not a picture of a card on a table.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-d507699a-4d23-44de-9c21-1c333e5d37b6.png"
+  },
+  {
+    "id": "well",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Production game asset: one single shallow inset square number well for a layered illustrated board game, orthographic straight top-down, square image, transparent outside. Intended display 44–80 CSS pixels. A softly rounded ivory glazed ceramic recess edged by a thick subtle antique-gold rim, deep bevel shadow on top and left, painterly cream surface very quiet and blank in center for a separately rendered dark number. Broad readable forms, rich handpainted toy material, retro carnival game aesthetic. Fill 96 percent of canvas. Do not include text, digits, icons, frame around the whole canvas, surroundings, or perspective. This is a reusable component layer, not UI.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-8320723d-bbc3-415d-b37d-23a41c81ce25.png"
+  },
+  {
+    "id": "bolt",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Production game token cutout on truly transparent background: ONE chunky golden-yellow lightning bolt, clean bold zigzag silhouette, beautifully illustrated carved and lacquered wood with warm ochre beveled sides, broad amber grain, polished golden face, one soft highlight upper-left, restrained tactile wear. Whimsical premium retro carnival board-game style, rich painterly 3D material, orthographic top down with very slight side depth. Intended display 80–110 CSS px, smallest resource icon 32px. Strong silhouette must remain readable at 32px; no fine details or text. Object occupies 90% of square canvas, centered. No other objects, no circles, no badge, no plinth, no background, no drop shadow outside shape.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-48f043b7-61d3-4009-b027-76d4c9ec7380.png"
+  },
+  {
+    "id": "moon",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Production game token cutout on truly transparent background: ONE chunky lavender crescent moon, broad crescent silhouette open toward the right, beautifully illustrated carved and lacquered wood with rich plum-purple beveled sides, broad subtle woodgrain, polished lilac face, one soft highlight upper-left, restrained tactile wear. Whimsical premium retro carnival board-game style, rich painterly 3D material, orthographic top down with very slight side depth. Intended display 80–110 CSS px, smallest resource icon 32px. Strong crescent silhouette readable at 32px, smooth big curves not fine details. Object occupies 90% of square canvas, centered. No face, no text, no other objects, no circles, no badge, no plinth, no background, no drop shadow outside shape.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-45cc5bb9-3f14-41f7-b587-5ab4059f2f95.png"
+  },
+  {
+    "id": "number",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Asset type: actual production number-card body layer for illustrated retro carnival board game, not a UI mockup. One portrait rectangular card aspect ratio 5:7, straight-on orthographic with no perspective. Transparent exterior. A beautiful handpainted sage-green and deep forest-green enamel frame with soft rounded corners, antique gold inlay and bevel, subtle green striped ornamental corner flourishes integrated into the frame. Large central CREAM circular medallion, entirely blank and QUIET, centered x50 y50 spanning 70% width, for a big dynamic number to be added later. Restrained warm coral radial bands behind the medallion in the inner face, lush painted ivory stock, rich illustrated materials and subtle signs of use. Small blank corner cream spaces at upper left/lower right for separately added numerals. Intended display min65px wide in draw, 110–180px in gallery, so large broad material shapes readable without tiny detail. Fill 97% canvas, no surrounding table, no cast shadow, no text, no digits, no lettering.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-4ab14359-52e0-444d-a447-de5c85d9b86f.png"
+  },
+  {
+    "id": "back",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Asset type: actual game card reverse artwork, not UI. One square softly rounded Lucky Box card, orthographic front-facing, truly transparent exterior, occupies96% of canvas. Sumptuous original hand-painted retro carnival game illustration, rich glazed paprika-red enamel and teal-green edges, gold inlaid trim. Radial illustrated cream-and-coral sunburst with deep indigo and teal flowing ornamental corner shapes, painterly ink and subtle scuffed varnish, palpable chunky card-stock edges. Center has a LARGE quiet dark teal decorative cartouche x20–80% y20–80%, reserved for separately rendered cream title lettering. NO text, NO digits, no lettering. Broad playful shapes and strong negative space, not intricate filigree. Artwork must feel like a beautifully illustrated physical board-game piece at240–350 CSS px. Lighting upper left, crisp silhouette, no perspective, no shadows outside the object, no tabletop.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-c6f358c9-bd9d-4b4f-ad09-e1c46da3d296.png"
+  },
+  {
+    "id": "star",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Asset type: game reward artwork layer. ONE bold five-point coral-red star, straight-on orthographic, truly transparent background. Richly handpainted carved lacquered wooden star with rounded tips, deep warm red beveled edge, broad painterly wood grain and a soft upper-left highlight. Consistent with premium retro carnival board game and gold lightning/lavender moon tokens. Not a badge, no circular surround. Intended printed reward display32–40 CSS px so use clean broad silhouette, tiny texture subdued, just enough material depth. Fill90% of square canvas. No face, text, lettering, numbers, sparkles, other objects, background or external shadow.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-863f8d23-214f-425d-8138-08cd5422b3d1.png"
+  },
+  {
+    "id": "score",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Actual production scorecard body layer for a retro carnival board game. Portrait rectangle 5:7, centered straight-on orthographic, transparent background outside silhouette. Beautiful tactile vintage cream painted card stock, deep forest-green outer edge, gold inlaid rim and small broad coral corner scrolls integrated with edge. A small blank ivory-and-gold inset nameplate at top y5–12%. The whole inner face x10–90% y16–88% must be perfectly QUIET blank pale ivory parchment to support live score rows added later; no lines, boxes, numerals or icons. Bottom border slightly richer brass trim. Illustrated material with warm ink patina, glazed edge highlights, subtle wear at rounded corners, handpainted high-end board-game art, not a web panel. Readable small250px wide to large450px. Fill97% of canvas with object. No text, no digits, no symbols, no surrounding table, no perspective, no external shadow.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-2d38ebb5-ac8b-4022-bfec-1ef814b56f4b.png"
+  },
+  {
+    "id": "marker",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. One production game piece cutout: a beautiful ivory dry-erase marker with dark forest-green eraser cap, illustrated for premium retro carnival board game. EXACTLY HORIZONTAL left-to-right, eraser cap on left, marker body extending right, pen tip visible at right. Isolated on truly transparent background, full object visible with small margins, ultra-wide 3:1 canvas. Handpainted tactile enamel body with gentle cream paper patina, green-and-brass band details, softly scuffed cap, broad upper-left highlights, beautiful material depth. No text, no lettering, no numbers, no surrounding scenery, no extra markers. Intended displayed 240px wide and 30–45px high. No external cast shadow. Recognizable silhouette and restrained broad detail.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-9a31b36a-5293-44ae-8649-ecc0c86fa8d2.png"
+  },
+  {
+    "id": "mat",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Production game table mat artwork layer, wide landscape 3:2 rectangle, straight top-down orthographic. A luxurious muted sage-green woven felt playing mat, subtle painted broad fabric texture, dark forest-green rolled leather edge and thin antique gold piping, rounded corners with softly worn tactile finish. Retro carnival board-game illustration style, warmly handpainted, dimensional beveled edge without perspective. The whole center85% must be quiet evenly lit pale sage green with extremely subtle fiber detail, empty for separately composited cards. No game pieces, no stars, no tokens, no ornaments in the center, no text, no numbers, no icons. Transparent outside rounded mat silhouette. Intended use full scene1200–3000px wide, also stretched tall on phones; broad edges and restrained surface.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-6b92d511-a236-4cd2-b785-9d523f92f42c.png"
+  },
+  {
+    "id": "lilac",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied generated Lucky Box game card body. Change ONLY the coral-red and burnt-orange enamel portions of the outer frame to lilac and deep violet. Keep exact canvas dimensions, square shape, all transparent pixels, outer silhouette, all coordinates, blank top nameplate, blank ivory center, cream bands and gold inlaid trim unchanged. Keep the beautiful rich handpainted material, texture, shading, scuffed varnish and highlights. Do not tint the ivory or gold, add details, change proportions, or add text/numbers. This must be a drop-in colorway asset for the identical production component; live wells, digits and rewards will be layered separately.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-07d3739d-9b2b-4642-98c8-6f0b2e09e2e2.png",
+    "reference": "art/source/card.png"
+  },
+  {
+    "id": "sage",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied generated Lucky Box game card body. Change ONLY the coral-red and burnt-orange enamel portions of the outer frame to sage green and deep jade. Keep exact canvas dimensions, square shape, all transparent pixels, outer silhouette, all coordinates, blank top nameplate, blank ivory center, cream bands and gold inlaid trim unchanged. Keep the beautiful rich handpainted material, texture, shading, scuffed varnish and highlights. Do not tint the ivory or gold, add details, change proportions, or add text/numbers. This must be a drop-in colorway asset for the identical production component; live wells, digits and rewards will be layered separately.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-2a6d2e40-90e9-4e87-9e65-9682b6155fd2.png",
+    "reference": "art/source/card.png"
+  },
+  {
+    "id": "honey",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied generated Lucky Box game card body. Change ONLY the coral-red and burnt-orange enamel portions of the outer frame to honey yellow and warm amber. Keep exact canvas dimensions, square shape, all transparent pixels, outer silhouette, all coordinates, blank top nameplate, blank ivory center, cream bands and gold inlaid trim unchanged. Keep the beautiful rich handpainted material, texture, shading, scuffed varnish and highlights. Do not tint the ivory or gold, add details, change proportions, or add text/numbers. This must be a drop-in colorway asset for the identical production component; live wells, digits and rewards will be layered separately.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-a81164b3-b789-4b99-b1cb-45dde9cc10a6.png",
+    "reference": "art/source/card.png"
+  },
+  {
+    "id": "sky",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied generated Lucky Box game card body. Change ONLY the coral-red and burnt-orange enamel portions of the outer frame to sky blue and rich teal blue. Keep exact canvas dimensions, square shape, all transparent pixels, outer silhouette, all coordinates, blank top nameplate, blank ivory center, cream bands and gold inlaid trim unchanged. Keep the beautiful rich handpainted material, texture, shading, scuffed varnish and highlights. Do not tint the ivory or gold, add details, change proportions, or add text/numbers. This must be a drop-in colorway asset for the identical production component; live wells, digits and rewards will be layered separately.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-8b8bf929-f16f-4355-9511-494bef79a646.png",
+    "reference": "art/source/card.png"
+  },
+  {
+    "id": "rose",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit target: supplied generated Lucky Box game card body. Change ONLY the coral-red and burnt-orange enamel portions of the outer frame to rose pink and warm raspberry. Keep exact canvas dimensions, square shape, all transparent pixels, outer silhouette, all coordinates, blank top nameplate, blank ivory center, cream bands and gold inlaid trim unchanged. Keep the beautiful rich handpainted material, texture, shading, scuffed varnish and highlights. Do not tint the ivory or gold, add details, change proportions, or add text/numbers. This must be a drop-in colorway asset for the identical production component; live wells, digits and rewards will be layered separately.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-27ce7725-e581-45ca-a8f8-000d1655d581.png",
+    "reference": "art/source/card.png"
+  },
+  {
+    "id": "numberback",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: precise-object-edit. Edit the supplied generated square game-card reverse into a PORTRAIT 5:7 number-card reverse. Preserve the rich handpainted retro carnival construction, gold inlay, cream/coral radial sunburst, teal central cartouche and broad decorative corner sweeps. Recompose for a portrait silhouette, do not simply stretch the square image. Change outer border to forest green. Keep a large quiet empty teal center for live title lettering added later. No text, numbers, new objects, or perspective. Transparent exterior; object fills96% canvas. Intended display65–180 CSSpx wide, so broad strong forms, restrained texture. Preserve upper-left lighting and crisp rounded edges.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-acf7bd67-608a-4492-ae4b-9af0ea64c0b1.png",
+    "reference": "art/source/back.png"
+  }
+]
