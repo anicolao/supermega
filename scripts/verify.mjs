@@ -10,7 +10,7 @@ try {
  for(const [name,width,height] of [['phone',390,844],['small-phone',320,740],['tablet',834,1194],['tablet-landscape',1024,768],['laptop',1440,1000],['tabletop',3840,2160]]) {
   const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+(name==='tabletop'?'/tabletop/':'/'));
+  await page.goto(url+(name==='tabletop'?'/gallery/tabletop/':'/gallery/'));
   await page.locator('#table-cards .lucky-card').first().waitFor();
   await page.evaluate(()=>document.fonts.ready);
   await expect.poll(()=>page.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);

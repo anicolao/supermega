@@ -12,14 +12,14 @@ export function luckyCard(data: LuckyCardData, view: CardView = {}) {
   return state==='pending'&&view.interactive?`<button ${attrs} data-action="apply-bonus">${reward(data.rewards[index],state)}</button>`:`<span ${attrs} role="img" tabindex="-1">${reward(data.rewards[index],state)}</span>`;
  };
  return `<article class="lucky-card" style="--card-color:${data.color}" data-card-id="${data.id}" aria-label="Lucky Box ${data.serial}">
- <img class="piece-body" src="/assets/generated/${['card','lilac','sage','honey','sky','rose'][Number(data.serial)-1]??'card'}.webp" alt="" draggable="false"><div class="card-heading"><span>LUCKY BOX</span></div>
+ <img class="piece-body" src="/assets/generated/${['card','lilac','sage','honey','sky','rose'][(Number(data.serial)-1)%6]??'card'}.webp" alt="" draggable="false"><div class="card-heading"><span>LUCKY BOX</span></div>
  <div class="box-grid">${data.numbers.map((n,i) => {
  const isMarked = marked.includes(i);
  const attributes = `class="number-cell ${isMarked ? 'is-marked' : ''}"`;
  const contents = `<img class="well-layer" src="/assets/generated/well.webp" alt="" draggable="false"><span class="cell-value">${n}</span>${isMarked ? `<span class="ink-cross">${symbol('cross')}</span>` : ''}`;
  return `${i % 3 === 0 && i > 0 ? cardReward(i/3-1) : ''}${view.interactive ? `<button ${attributes} data-action="mark" data-card="${data.id}" data-cell="${i}" aria-label="Box ${data.serial}, row ${Math.floor(i/3)+1}, column ${i%3+1}, number ${n}${isMarked?', marked':''}" aria-pressed="${isMarked}">${contents}</button>` : `<div ${attributes}>${contents}</div>`}`;
  }).join('')}${cardReward(2)}${[0,1,2].map((n) => cardReward(n+3)).join('')}<span class="card-serial">${data.serial}</span></div>
- <div class="card-foot">${view.canUndo?`<button class="piece-undo" data-action="undo" aria-label="Undo last action on Box ${data.serial}">Undo ↶</button>`:''}${view.interactive ? `<button class="inspect-piece" data-action="inspect" data-card="${data.id}" aria-label="Enlarge Lucky Box ${data.serial}">↗</button>` : ''}</div></article>`;
+ <div class="card-foot">${view.canUndo?`<button class="piece-undo" data-action="undo" aria-label="Undo last action on Box ${data.serial}">Undo ↶</button>`:''}${view.interactive || view.inspectable ? `<button class="inspect-piece" data-action="inspect" data-card="${data.id}" aria-label="Enlarge Lucky Box ${data.serial}">↗</button>` : ''}</div></article>`;
 }
 export function cardBack(kind: 'lucky' | 'number', id: string = kind) {
  return `<div class="card-back ${kind}-back" data-piece-id="${id}" role="img" aria-label="${kind === 'lucky' ? 'Lucky Box' : 'Number card'} reverse"><img class="piece-body" src="/assets/generated/${kind==='lucky'?'back':'numberback'}.webp" alt="" draggable="false"><div class="back-logo"><span>SUPER</span><span>MEGA</span><span>LUCKY</span><span>BOX</span></div><span class="back-caption">${kind === 'lucky' ? 'GOOD THINGS COME IN BOXES' : 'WHAT’S YOUR LUCKY NUMBER?'}</span></div>`;

@@ -1,0 +1,15 @@
+{
+  "source": "https://m.brettspielwelt.de/bswweb/deferredjs/CD3BC8CC218FE1087E25A2B127A6E36E/41.cache.js",
+  "symbols": "https://m.brettspielwelt.de/assets/textures/superMegaLuckyBox.json",
+  "accessed": "2026-11-13",
+  "scope": "Numeric game component facts only. No third-party code, artwork, or sound is included.",
+  "symbolsVerified": {
+    "0": "no bonus",
+    "10": "double lightning",
+    "11": "star",
+    "12": "moon",
+    "13": "wild",
+    "14": "lightning"
+  },
+  "sha256": "75f85792ad0c7a3dddc0caa46e76bac6600fdd0f1ed2cfaf3f1723d9b6db2a32"
+}

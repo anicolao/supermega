@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  match /previews/{scope}/rooms/{room} {
+   function signed(){return request.auth!=null;}
+   function root(){return /databases/$(database)/documents/previews/$(scope)/rooms/$(room);}
+   function event(){return getAfter(/databases/$(database)/documents/previews/$(scope)/rooms/$(room)/events/$(request.resource.data.lastEvent)).data;}
+   function receipt(){return getAfter(/databases/$(database)/documents/previews/$(scope)/rooms/$(room)/commands/$(request.resource.data.lastEvent)).data;}
+   function linked(){return event().id==request.resource.data.lastEvent && event().actor==request.auth.uid && event().sequence==request.resource.data.revision && receipt().actor==request.auth.uid && receipt().sequence==event().sequence;}
+   function shape(){return request.resource.data.keys().hasOnly(['owner','controllers','revision','phase','lastEvent','eventIds']) && request.resource.data.controllers is list && request.resource.data.controllers.size()<=6 && request.resource.data.eventIds is list && request.resource.data.eventIds.size()==request.resource.data.revision && request.resource.data.lastEvent is string;}
+   function allowed(){return event().command.type=='join' && resource.data.phase=='lobby' || event().command.type in ['start','reveal','next-round','rematch'] && resource.data.owner==request.auth.uid || event().command.type in ['choose','mark','bonus','finish','undo'] && event().command.playerId.matches('^'+request.auth.uid+':[1-6]$') && resource.data.controllers.hasAny([request.auth.uid]);}
+   allow get: if signed();
+   allow list,delete: if false;
+   allow create: if signed() && shape() && linked() && request.resource.data.owner==request.auth.uid && request.resource.data.revision==1 && request.resource.data.phase=='lobby' && request.resource.data.controllers==[request.auth.uid] && request.resource.data.eventIds==[request.resource.data.lastEvent] && event().command.type=='create';
+   allow update: if signed() && shape() && linked() && request.resource.data.owner==resource.data.owner && request.resource.data.revision==resource.data.revision+1 && request.resource.data.eventIds==resource.data.eventIds.concat([request.resource.data.lastEvent]) && request.resource.data.controllers.hasAll(resource.data.controllers) && request.resource.data.controllers.hasAny([request.auth.uid]) && allowed();
+   match /events/{eventId} {
+    allow read: if signed();
+    allow create: if signed() && request.resource.data.keys().hasOnly(['version','id','actor','sequence','command']) && request.resource.data.version==1 && request.resource.data.actor==request.auth.uid && request.resource.data.id==eventId && request.resource.data.command is map && request.resource.data.sequence==getAfter(root()).data.revision && eventId==getAfter(root()).data.lastEvent && getAfter(/databases/$(database)/documents/previews/$(scope)/rooms/$(room)/commands/$(eventId)).data.actor==request.auth.uid;
+    allow update,delete: if false;
+   }
+   match /commands/{command} {
+    allow read: if signed();
+    allow create: if signed() && request.resource.data.keys().hasOnly(['actor','sequence']) && request.resource.data.actor==request.auth.uid && request.resource.data.sequence==getAfter(root()).data.revision && command==getAfter(root()).data.lastEvent && getAfter(/databases/$(database)/documents/previews/$(scope)/rooms/$(room)/events/$(command)).data.id==command;
+    allow update,delete: if false;
+   }
+  }
+ }
+}

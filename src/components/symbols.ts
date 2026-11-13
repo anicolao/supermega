@@ -12,5 +12,5 @@ export function symbol(name: SymbolName, decorative = true) {
  if(name==='wild')return `<span class="symbol symbol-wild printed-wild" ${semantics}>?</span>`;
  return `<svg class="symbol symbol-${name}" viewBox="0 0 64 64" ${semantics}>${paths[name]}</svg>`;
 }
-export function rewardLabel(r: Reward) { return typeof r === 'number' ? `Number ${r}` : names[r]; }
-export function reward(r: Reward, state: RewardState = 'unearned') { return `<span class="reward ${typeof r === 'number' ? 'reward-number' : `reward-${r}`} reward-${state}" title="${rewardLabel(r)}${state==='unearned'?'':`, ${state}`}">${typeof r === 'number' ? r : symbol(r)}</span>`; }
+export function rewardLabel(r: Reward) { return r===null?'No bonus':typeof r === 'number' ? `Number ${r}` : names[r]; }
+export function reward(r: Reward, state: RewardState = 'unearned') { if(r===null)return '<span class="reward reward-empty" aria-hidden="true"></span>'; return `<span class="reward ${typeof r === 'number' ? 'reward-number' : `reward-${r}`} reward-${state}" title="${rewardLabel(r)}${state==='unearned'?'':`, ${state}`}">${typeof r === 'number' ? r : symbol(r)}</span>`; }
