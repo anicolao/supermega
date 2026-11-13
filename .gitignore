@@ -10,3 +10,5 @@ dist/
 public/review/
 firebase-debug.log
 firestore-debug.log
+
+.firebase/
