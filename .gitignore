@@ -7,3 +7,8 @@ dist/
 !.env.example
 *.log
 .e2e-cache/
+public/review/
+firebase-debug.log
+firestore-debug.log
+
+.firebase/
