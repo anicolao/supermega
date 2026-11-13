@@ -40,6 +40,8 @@ This requirement concerns the physical game objects, not the ordinary navigation
 
 - **Separate presentation from game authority.** Shared components emit typed choices and render supplied state. Before a rules engine exists, use a deterministic fixture adapter through the intended production interface. Simulated outcomes must not require a second UI implementation. Components must support authoritative availability and rejection without embedding game legality.
 
+- **Keep play within the viewport.** Gameplay, setup, and supporting review surfaces must not require document scrolling. Recompose the table for the available width and height. Use explicit card pages and separate paged help, score, or history views when everything cannot fit at a readable size. Keep the deck and active draw prominent. Never satisfy this by clipping controls or shrinking touch targets below their usable size.
+
 - **Preserve usability across inputs and screens.** Provide keyboard access, visible focus, adequate touch targets, reduced motion, and readable scaling. Semantic HTML buttons are welcome when they visually and behaviorally represent the game objects.
 
 ## Definition of done
