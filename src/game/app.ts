@@ -42,6 +42,7 @@ import {
   type SoundKind,
 } from "./sound.ts";
 import QRCode from "qrcode";
+import { animateDraw } from "./draw-animation.ts";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 let state: State | undefined,
   events: GameEvent[] = [],
@@ -97,7 +98,7 @@ function cardView(box: Box, p: Player) {
     bonuses: bonusStates(box),
     interactive: p.controller === uid && state?.phase === "playing" && !p.ready,
     inspectable: true,
-    canUndo: p.controller === uid && !!state?.undo[p.id]?.length,
+    canUndo: false,
   };
 }
 const inspector = new CardInspector(
@@ -127,14 +128,18 @@ function lobby() {
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
-  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : p.ready ? "Ready for the next draw ✓" : pendingBonuses(p).length ? "Tap your glowing bonuses." : p.usedDraw ? "Number marked. Ready when you are." : "Tap a number. Lightning spends automatically."}</div><div class="ready-controls"><button class="outlined-button" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button><button class="ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button></div></div>`;
+  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap your glowing bonuses." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
+}
+function trayActions(p: Player) {
+  if (p.controller !== uid) return "";
+  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="outlined-button" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="outlined-button ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
 }
 function boxes(p: Player, offered: boolean) {
   const cards = offered ? p.offers : p.cards;
   const layout = cardLayouts.get(p.id) ?? {
     capacity: 1,
     columns: 1,
-    size: 252,
+    size: 260,
   };
   const pages = Math.max(1, Math.ceil(cards.length / layout.capacity));
   const page = Math.min(cardPages.get(p.id) ?? 0, pages - 1);
@@ -147,25 +152,27 @@ function boxes(p: Player, offered: boolean) {
         ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>`
         : luckyCard(art(box), cardView(box, p)),
     )
-    .join(
-      "",
-    )}</div></div><nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
-    { length: pages },
-    (_, i) =>
-      `<button data-game="card-page" data-player="${p.id}" data-page="${i}" aria-pressed="${page === i}" aria-label="Card page ${i + 1}">${cards
-        .slice(i * layout.capacity, (i + 1) * layout.capacity)
-        .map(
-          (box) =>
-            `${art(box).serial}${selected.includes(box.id) ? " ✓" : pendingBonuses(p).some((b) => b.cardId === box.id) ? " •" : ""}`,
-        )
-        .join(" · ")}</button>`,
-  ).join("")}</nav>`;
+    .join("")}</div></div>${
+    offered
+      ? `<nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
+          { length: pages },
+          (_, i) =>
+            `<button data-game="card-page" data-player="${p.id}" data-page="${i}" aria-pressed="${page === i}" aria-label="Card page ${i + 1}">${cards
+              .slice(i * layout.capacity, (i + 1) * layout.capacity)
+              .map(
+                (box) =>
+                  `${art(box).serial}${selected.includes(box.id) ? " ✓" : pendingBonuses(p).some((b) => b.cardId === box.id) ? " •" : ""}`,
+              )
+              .join(" · ")}</button>`,
+        ).join("")}</nav>`
+      : `<div class="tray-dock"><nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${p.id}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1} / ${pages}</span><button data-game="card-page" data-player="${p.id}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : `<span>BOX ${cards.map((box) => art(box).serial).join(" · ")}</span>`}</nav>${trayActions(p)}</div>`
+  }`;
 }
 function playerArea(p: Player) {
   const own = p.controller === uid,
     offered = state!.phase === "draft" && !!p.offers.length;
   const selected = selections.get(p.id) ?? [];
-  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${p.bolts} lightning">${p.bolts}</b>${token("moon")}<b>${p.moons}</b>${symbol("star")}<b>${p.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? boxes(p, true) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. ${own ? `<button class="outlined-button" data-game="undo" data-player="${p.id}" ${busy ? "disabled" : ""}>Undo ↶</button>` : ""}` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
+  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${p.bolts} lightning">${p.bolts}</b>${token("moon")}<b>${p.moons}</b>${symbol("star")}<b>${p.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? boxes(p, true) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
 }
 function describe(e: GameEvent) {
   const c = e.command,
@@ -203,7 +210,7 @@ function playing() {
     selectedPlayer = owned[0]?.id ?? state!.players[0]?.id;
   const focused = state!.players.find((p) => p.id === selectedPlayer)!;
   const number = state!.turn ? currentNumber(state!) : undefined;
-  return `<div class="play-screen"><section class="game-status"><div class="draw-heading"><p class="eyebrow">ROUND ${state!.round} / 4 · ${state!.turn} / 9</p><h1>${state!.phase === "draft" ? "Pick your luck." : state!.phase === "finished" ? "Mega finish!" : `Lucky ${number}`}</h1></div><div class="common-draw"><div class="live-deck">${cardBack("number")}</div>${number ? `<div class="live-number">${numberCard(number)}</div>` : ""}</div><div class="draw-control">${
+  return `<div class="play-screen"><section class="game-status"><div class="draw-heading"><p class="eyebrow">ROUND ${state!.round} / 4 · ${state!.turn} / 9</p><h1>${state!.phase === "draft" ? "Pick your luck." : state!.phase === "finished" ? "Mega finish!" : `Lucky ${number}`}</h1></div><div class="common-draw"><div class="live-deck">${cardBack("number")}</div>${number ? `<div class="live-number">${numberCard(number)}</div>` : ""}<div class="countdown-burst" data-countdown hidden aria-hidden="true"><img class="countdown-well" src="/assets/generated/well.webp" alt=""><span class="countdown-cheer">HERE COMES LUCK!</span><strong data-countdown-value>3</strong><span class="countdown-caption" data-countdown-caption>Next draw</span><i class="countdown-star first">${symbol("star")}</i><i class="countdown-star second">${symbol("star")}</i></div></div><div class="draw-control">${
     state!.phase !== "finished"
       ? `<span data-auto-status></span>${state!.owner === uid ? `<button class="text-button" data-game="auto-pause" aria-pressed="${autoPaused}">${autoPaused || autoFailed ? "Resume draws ▶" : "Pause draws Ⅱ"}</button>` : ""}`
       : `<p>${state!.players
@@ -286,8 +293,8 @@ function observeCards() {
       const element = entry.target as HTMLElement,
         count = Number(element.dataset.cardCount),
         { width, height } = entry.contentRect;
-      const maxColumns = Math.max(1, Math.floor((width + 8) / 260)),
-        maxRows = Math.max(1, Math.floor((height + 8) / 260));
+      const maxColumns = Math.max(1, Math.floor((width + 8) / 268)),
+        maxRows = Math.max(1, Math.floor((height + 8) / 268));
       const capacity = Math.max(1, Math.min(count, maxColumns * maxRows));
       const page = Math.min(
         cardPages.get(element.dataset.layoutPlayer!) ?? 0,
@@ -354,6 +361,34 @@ function updateAuto() {
           : eligible
             ? `${state!.phase === "playing" && state!.turn === 9 ? "Scoring" : "Next draw"} in ${Math.max(1, Math.ceil((autoDeadline - Date.now()) / 1000))}…`
             : "Waiting for everyone to be ready";
+  const burst = app.querySelector<HTMLElement>("[data-countdown]");
+  const counting = eligible && !!autoDeadline && state!.owner === uid;
+  if (burst) {
+    burst.hidden = !counting;
+    if (counting) {
+      const value = burst.querySelector<HTMLElement>("[data-countdown-value]")!;
+      const tick = String(
+        Math.max(1, Math.ceil((autoDeadline - Date.now()) / 1000)),
+      );
+      if (value.dataset.tick !== tick) {
+        value.dataset.tick = tick;
+        value.textContent = tick;
+        if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
+          value.animate(
+            [
+              { transform: "scale(1.35) rotate(-8deg)" },
+              { transform: "scale(.94) rotate(3deg)", offset: 0.75 },
+              { transform: "scale(1) rotate(0deg)" },
+            ],
+            { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" },
+          );
+      }
+      burst.querySelector("[data-countdown-caption]")!.textContent =
+        state!.phase === "playing" && state!.turn === 9
+          ? "Score time!"
+          : "Next draw!";
+    }
+  }
   if (
     eligible &&
     autoDeadline &&
@@ -446,6 +481,11 @@ async function attach(code: string) {
       uid,
       room,
       (next, s) => {
+        const drawChanged =
+          state &&
+          state.phase !== "empty" &&
+          s.phase === "playing" &&
+          (state.round !== s.round || state.turn !== s.turn);
         if (state?.phase !== s.phase || state?.round !== s.round)
           cardPages.clear();
         events = next;
@@ -466,6 +506,12 @@ async function attach(code: string) {
             activeBonus = undefined;
         }
         render();
+        if (drawChanged)
+          requestAnimationFrame(() => {
+            const deck = app.querySelector<HTMLElement>(".live-deck"),
+              target = app.querySelector<HTMLElement>(".live-number");
+            if (deck && target) animateDraw(deck, target, currentNumber(s));
+          });
         resolve(s);
       },
       (error) => {
