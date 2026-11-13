@@ -1535,3 +1535,134 @@ body:has(.game-page) .inspection-feedback {
     visibility: visible;
   }
 }
+/* Actions belong to the last acted card, using generated ceramic button art. */
+.game-card {
+  width: var(--card-size);
+  container-type: inline-size;
+}
+.card-action-dock {
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+.card-action-dock .ready-controls {
+  display: flex;
+  gap: 4px;
+}
+.card-action-dock .game-action {
+  position: relative;
+  isolation: isolate;
+  width: clamp(72px, 28cqw, 104px);
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 13px;
+  background: none;
+  box-shadow: none;
+  color: #3c3924;
+  font: 400 clamp(14px, 5cqw, 18px)/1 var(--heading);
+  white-space: nowrap;
+  text-shadow: 0 1px #fff8df;
+  outline-offset: -2px;
+}
+.card-action-dock .game-action::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/assets/generated/action-button.webp") center/100% 100%
+    no-repeat;
+  filter: drop-shadow(0 2px 1px #26351a55);
+  pointer-events: none;
+}
+.card-action-dock .game-action.ready-button {
+  color: #234926;
+}
+.card-action-dock .game-action:disabled {
+  opacity: 1;
+  color: #66654f;
+}
+.card-action-dock .game-action:disabled::before {
+  filter: grayscale(0.75);
+  opacity: 0.65;
+}
+.card-action-dock .game-action:not(:disabled):hover::before {
+  filter: brightness(1.08) drop-shadow(0 2px 1px #26351a55);
+}
+.card-action-dock .game-action:not(:disabled):active {
+  transform: translateY(1px);
+}
+.card-action-dock .tray-pages {
+  background: none;
+  padding: 0;
+  gap: 0;
+  min-height: 44px;
+}
+.card-action-dock .tray-pages button {
+  position: relative;
+  isolation: isolate;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 8px;
+  font-size: 26px;
+  color: #263d24;
+}
+.card-action-dock .tray-pages button::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  background: url("/assets/generated/well.webp") center/100% 100% no-repeat;
+  pointer-events: none;
+}
+.card-action-dock .tray-pages button:disabled {
+  opacity: 1;
+  background: none;
+  color: #6b715a;
+}
+.card-action-dock .tray-pages button:disabled::before {
+  filter: grayscale(0.7);
+  opacity: 0.65;
+}
+.card-action-dock .tray-pages > span {
+  min-width: 20px;
+  padding: 3px 1px;
+  font-size: 11px;
+  text-align: center;
+  background: #fff3d9;
+  color: #263b23;
+  border-radius: 3px;
+}
+/* One caption inside the quiet center. Numeral sizes stay unchanged. */
+.countdown-burst strong {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -65%;
+}
+.countdown-caption {
+  position: absolute;
+  left: 18%;
+  width: 64%;
+  bottom: 16%;
+  text-align: center;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+.inspection-actions {
+  min-width: 216px;
+  flex-shrink: 0;
+}
+.inspection-actions .game-action {
+  width: 104px;
+}

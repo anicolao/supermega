@@ -50,12 +50,15 @@ let state: State | undefined,
   room = "",
   repo: ReturnType<typeof repositoryType> | undefined,
   busy = false,
+  submitting = false,
   creating = false,
   message = "",
+  feedbackPlayer = "",
   qr = "",
   selectedPlayer = "",
   inspectedPlayer = "";
 const rotations = new Set<string>();
+const lastCards = new Map<string, string>();
 const selections = new Map<string, string[]>(),
   cardPages = new Map<string, number>(),
   cardLayouts = new Map<
@@ -96,7 +99,8 @@ function cardView(box: Box, p: Player) {
   return {
     marked: box.marks,
     bonuses: bonusStates(box),
-    interactive: p.controller === uid && state?.phase === "playing" && !p.ready,
+    interactive:
+      p.controller === uid && state?.phase === "playing" && !p.ready && !busy,
     inspectable: true,
     canUndo: false,
   };
@@ -111,7 +115,7 @@ const inspector = new CardInspector(
 );
 function feedback() {
   const p = state?.players.find((p) => p.id === inspectedPlayer);
-  return `<span>${escape(message || "Tap a number or a pending bonus.")}</span>${p && state?.undo[p.id]?.length ? `<button class="outlined-button" data-game="undo" data-player="${p.id}">Undo last choice ↶</button>` : ""}`;
+  return `<span>${escape(message || "Tap a number or a pending bonus.")}</span>${p && p.controller === uid ? `<div class="card-action-dock inspection-actions">${trayActions(p)}</div>` : ""}`;
 }
 const brand = `<a class="wordmark" href="/"><span class="brand-box">${symbol("box")}</span><span>SUPER MEGA<br><b>LUCKY BOX</b></span></a>`;
 function header() {
@@ -128,11 +132,11 @@ function lobby() {
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
-  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap your glowing bonuses." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
+  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap your glowing bonuses." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
 }
 function trayActions(p: Player) {
   if (p.controller !== uid) return "";
-  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="outlined-button" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="outlined-button ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
+  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
 }
 function boxes(p: Player, offered: boolean) {
   const cards = offered ? p.offers : p.cards;
@@ -142,17 +146,28 @@ function boxes(p: Player, offered: boolean) {
     size: 260,
   };
   const pages = Math.max(1, Math.ceil(cards.length / layout.capacity));
-  const page = Math.min(cardPages.get(p.id) ?? 0, pages - 1);
+  const preferredPage = Math.max(
+    0,
+    Math.floor(
+      cards.findIndex((box) => box.id === lastCards.get(p.id)) /
+        layout.capacity,
+    ),
+  );
+  const page = Math.min(cardPages.get(p.id) ?? preferredPage, pages - 1);
   cardPages.set(p.id, page);
+  const visible = cards.slice(
+    page * layout.capacity,
+    (page + 1) * layout.capacity,
+  );
+  const last =
+    activeBonus?.playerId === p.id ? activeBonus.cardId : lastCards.get(p.id);
+  const active = cards.find((box) => box.id === last)?.id ?? cards[0]?.id;
+  const anchor = visible.some((box) => box.id === active)
+    ? active
+    : visible[0]?.id;
   const selected = selections.get(p.id) ?? [];
-  return `<div class="card-surface" data-layout-player="${p.id}" data-card-count="${cards.length}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${cards
-    .slice(page * layout.capacity, (page + 1) * layout.capacity)
-    .map((box) =>
-      offered
-        ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>`
-        : luckyCard(art(box), cardView(box, p)),
-    )
-    .join("")}</div></div>${
+  const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${p.id}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${p.id}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${p.id}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">↩</button>` : ""}</nav>`;
+  return `<div class="card-surface" data-layout-player="${p.id}" data-card-count="${cards.length}" data-action-space="${offered ? 0 : 44}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>${
     offered
       ? `<nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
           { length: pages },
@@ -161,11 +176,11 @@ function boxes(p: Player, offered: boolean) {
               .slice(i * layout.capacity, (i + 1) * layout.capacity)
               .map(
                 (box) =>
-                  `${art(box).serial}${selected.includes(box.id) ? " ✓" : pendingBonuses(p).some((b) => b.cardId === box.id) ? " •" : ""}`,
+                  `${art(box).serial}${selected.includes(box.id) ? " ✓" : ""}`,
               )
               .join(" · ")}</button>`,
         ).join("")}</nav>`
-      : `<div class="tray-dock"><nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${p.id}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1} / ${pages}</span><button data-game="card-page" data-player="${p.id}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : `<span>BOX ${cards.map((box) => art(box).serial).join(" · ")}</span>`}</nav>${trayActions(p)}</div>`
+      : ""
   }`;
 }
 function playerArea(p: Player) {
@@ -210,7 +225,7 @@ function playing() {
     selectedPlayer = owned[0]?.id ?? state!.players[0]?.id;
   const focused = state!.players.find((p) => p.id === selectedPlayer)!;
   const number = state!.turn ? currentNumber(state!) : undefined;
-  return `<div class="play-screen"><section class="game-status"><div class="draw-heading"><p class="eyebrow">ROUND ${state!.round} / 4 · ${state!.turn} / 9</p><h1>${state!.phase === "draft" ? "Pick your luck." : state!.phase === "finished" ? "Mega finish!" : `Lucky ${number}`}</h1></div><div class="common-draw"><div class="live-deck">${cardBack("number")}</div>${number ? `<div class="live-number">${numberCard(number)}</div>` : ""}<div class="countdown-burst" data-countdown hidden aria-hidden="true"><img class="countdown-well" src="/assets/generated/well.webp" alt=""><span class="countdown-cheer">HERE COMES LUCK!</span><strong data-countdown-value>3</strong><span class="countdown-caption" data-countdown-caption>Next draw</span><i class="countdown-star first">${symbol("star")}</i><i class="countdown-star second">${symbol("star")}</i></div></div><div class="draw-control">${
+  return `<div class="play-screen"><section class="game-status"><div class="draw-heading"><p class="eyebrow">ROUND ${state!.round} / 4 · ${state!.turn} / 9</p><h1>${state!.phase === "draft" ? "Pick your luck." : state!.phase === "finished" ? "Mega finish!" : `Lucky ${number}`}</h1></div><div class="common-draw"><div class="live-deck">${cardBack("number")}</div>${number ? `<div class="live-number">${numberCard(number)}</div>` : ""}<div class="countdown-burst" data-countdown hidden aria-hidden="true"><img class="countdown-well" src="/assets/generated/well.webp" alt=""><strong data-countdown-value>3</strong><span class="countdown-caption" data-countdown-caption>Next draw</span><i class="countdown-star first">${symbol("star")}</i><i class="countdown-star second">${symbol("star")}</i></div></div><div class="draw-control">${
     state!.phase !== "finished"
       ? `<span data-auto-status></span>${state!.owner === uid ? `<button class="text-button" data-game="auto-pause" aria-pressed="${autoPaused}">${autoPaused || autoFailed ? "Resume draws ▶" : "Pause draws Ⅱ"}</button>` : ""}`
       : `<p>${state!.players
@@ -293,8 +308,9 @@ function observeCards() {
       const element = entry.target as HTMLElement,
         count = Number(element.dataset.cardCount),
         { width, height } = entry.contentRect;
+      const actionSpace = Number(element.dataset.actionSpace ?? 0);
       const maxColumns = Math.max(1, Math.floor((width + 8) / 268)),
-        maxRows = Math.max(1, Math.floor((height + 8) / 268));
+        maxRows = Math.max(1, Math.floor((height + 8) / (268 + actionSpace)));
       const capacity = Math.max(1, Math.min(count, maxColumns * maxRows));
       const page = Math.min(
         cardPages.get(element.dataset.layoutPlayer!) ?? 0,
@@ -311,7 +327,7 @@ function observeCards() {
           size = Math.floor(
             Math.min(
               (width - 8 * (columns - 1)) / columns,
-              (height - 8 * (rows - 1)) / rows,
+              (height - 8 * (rows - 1)) / rows - actionSpace,
               420,
             ),
           );
@@ -430,7 +446,7 @@ function render() {
       }
     : undefined;
   app.innerHTML = room
-    ? `${header()}<main class="game-page ${location.pathname.startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : "Finding your table…"}</h1><p>The latest choices are being loaded from Firebase.</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message ? "has-message" : ""}" role="status" aria-live="polite">${escape(message)}${repo?.hasPending() ? '<button data-game="retry" class="outlined-button">Retry pending choice</button>' : ""}</div></main>`
+    ? `${header()}<main class="game-page ${location.pathname.startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : "Finding your table…"}</h1><p>The latest choices are being loaded from Firebase.</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message && !feedbackPlayer ? "has-message" : ""}" role="status" aria-live="polite">${feedbackPlayer ? "" : escape(message)}${repo?.hasPending() ? '<button data-game="retry" class="outlined-button">Retry pending choice</button>' : ""}</div></main>`
     : `${front()}${message ? `<div class="game-notice has-message" role="status">${escape(message)}</div>` : ""}`;
   document.body.classList.toggle(
     "is-tabletop",
@@ -488,9 +504,23 @@ async function attach(code: string) {
           (state.round !== s.round || state.turn !== s.turn);
         if (state?.phase !== s.phase || state?.round !== s.round)
           cardPages.clear();
+        for (const event of next.slice(events.length)) {
+          const command = event.command;
+          if ("playerId" in command) {
+            const card =
+              command.type === "mark"
+                ? command.cardId
+                : command.type === "bonus"
+                  ? (command.targetCard ?? command.cardId)
+                  : command.type === "choose"
+                    ? command.cards.at(-1)
+                    : undefined;
+            if (card) lastCards.set(command.playerId, card);
+          }
+        }
         events = next;
         state = s;
-        busy = false;
+        if (!submitting) busy = false;
         autoFailed = false;
         localStorage.setItem("supermega:last-room", room);
         if (activeBonus) {
@@ -538,7 +568,9 @@ const sounds: Record<string, SoundKind> = {
 };
 async function send(command: Command) {
   if (busy) return false;
+  submitting = true;
   busy = true;
+  feedbackPlayer = "playerId" in command ? command.playerId : "";
   message = "";
   render();
   try {
@@ -550,12 +582,14 @@ async function send(command: Command) {
     playSound("error");
     return false;
   } finally {
+    submitting = false;
     busy = false;
     autoDeadline = 0;
     render();
   }
 }
 function notice(error: unknown) {
+  feedbackPlayer = "";
   message = error instanceof Error ? error.message : String(error);
   busy = false;
   render();
@@ -767,7 +801,9 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (game === "finish") {
-      await send({ type: "finish", playerId: button.dataset.player! });
+      if (await send({ type: "finish", playerId: button.dataset.player! })) {
+        if (inspector.isOpen) inspector.close();
+      }
       return;
     }
     if (game === "start" || game === "reveal" || game === "next-round") {
@@ -791,6 +827,8 @@ document.addEventListener("click", async (e) => {
       const { p, box } = findBox(button.dataset.card!),
         bonus = Number(button.dataset.bonus),
         value = cardById(box.template).rewards[bonus];
+      lastCards.set(p.id, box.id);
+      feedbackPlayer = p.id;
       if (
         (typeof value === "number" || value === "wild") &&
         targets(p, value).length
@@ -806,6 +844,7 @@ document.addEventListener("click", async (e) => {
     if (action === "mark") {
       const { p, box } = findBox(button.dataset.card!),
         cell = Number(button.dataset.cell);
+      lastCards.set(p.id, box.id);
       if (activeBonus && activeBonus.playerId === p.id) {
         if (
           await send({
