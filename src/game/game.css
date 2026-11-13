@@ -1270,3 +1270,268 @@ body:has(.game-page) .inspection-feedback {
     font-size: 24px;
   }
 }
+/* Tray actions stay attached to the cards on every orientation. */
+.tray-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.tray-dock .ready-controls {
+  gap: 6px;
+}
+.tray-dock .ready-controls button {
+  min-width: 78px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 12px;
+  background: #fff5de;
+  color: #243b24;
+  border: 1px solid #455d37;
+}
+.tray-dock .ready-controls .ready-button {
+  background: #2b4d29;
+  color: #fff8e5;
+  border-color: #243d20;
+}
+.tray-dock .ready-controls button:disabled {
+  opacity: 1;
+  color: #596350;
+  background: #e7e8dc;
+  border-color: #919a83;
+}
+.tray-pages {
+  gap: 2px;
+}
+.tray-pages button {
+  font-size: 26px;
+  background: #fff5de;
+  color: #263d24;
+  border-radius: 4px;
+}
+.tray-pages button:disabled {
+  opacity: 1;
+  color: #78816d;
+  background: #e4e7d9;
+}
+.tray-pages > span {
+  font-size: 12px;
+  white-space: nowrap;
+  padding: 6px;
+}
+.player-controls {
+  min-height: 28px;
+  justify-content: center;
+}
+.choice-guidance {
+  max-width: none;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 3px 8px;
+}
+.seat-heading,
+.choice-guidance,
+.seat-instruction,
+.draft-ready,
+.card-pages {
+  color: #182b18;
+  background: #fff5e0f2;
+  text-shadow: none;
+  border-radius: 4px;
+}
+.seat-heading {
+  padding-inline: 6px;
+}
+.seat-heading h2 {
+  color: #182b18;
+}
+.seat-resources > b {
+  color: #182b18;
+}
+.seat-instruction,
+.draft-ready {
+  min-height: 28px;
+  font-weight: 600;
+}
+.card-pages {
+  padding-inline: 3px;
+}
+.card-pages button {
+  color: #182b18;
+}
+.card-pages button[aria-pressed="true"] {
+  border-color: #182b18;
+}
+/* The illustrated draw becomes a small, joyful countdown stage. */
+.countdown-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 164px;
+  height: 164px;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 5px #30231055);
+  isolation: isolate;
+}
+.countdown-burst[hidden] {
+  display: none;
+}
+.countdown-well {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  z-index: -1;
+}
+.countdown-cheer,
+.countdown-caption {
+  font: 12px/1.1 var(--heading);
+  color: #49351f;
+  letter-spacing: 0.4px;
+}
+.countdown-burst strong {
+  font: 100px/0.95 var(--heading);
+  color: #ae3d23;
+  text-shadow: 0 3px #fff7df;
+}
+.countdown-star {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+}
+.countdown-star .symbol {
+  width: 100%;
+  height: 100%;
+}
+.countdown-star.first {
+  top: -6px;
+  left: -5px;
+  transform: rotate(-18deg);
+}
+.countdown-star.second {
+  bottom: -2px;
+  right: -7px;
+  transform: rotate(18deg);
+}
+.flying-number {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  perspective: 900px;
+  transform-origin: center;
+}
+.flight-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.flight-back {
+  transform: rotateY(180deg);
+}
+.flying-number .number-card,
+.flying-number .card-back {
+  width: 100%;
+  height: 100%;
+}
+.is-drawing .live-number {
+  visibility: hidden;
+}
+@media (max-width: 650px) and (min-height: 600px), (max-width: 450px) {
+  .tray-dock {
+    gap: 6px;
+  }
+  .tray-dock .ready-controls button {
+    min-width: 66px;
+    padding: 8px;
+    font-size: 13px;
+  }
+  .tray-pages > span {
+    padding: 4px;
+    font-size: 11px;
+  }
+  .choice-guidance {
+    font-size: 12px;
+  }
+  .player-controls {
+    min-height: 28px;
+  }
+  .countdown-burst {
+    width: 108px;
+    height: 108px;
+  }
+  .countdown-burst strong {
+    font-size: 68px;
+  }
+  .countdown-cheer,
+  .countdown-caption {
+    font-size: 9px;
+  }
+  .countdown-star {
+    width: 25px;
+    height: 25px;
+  }
+}
+@media (max-width: 650px) and (min-height: 700px) {
+  .countdown-burst {
+    width: 140px;
+    height: 140px;
+  }
+  .countdown-burst strong {
+    font-size: 88px;
+  }
+  .countdown-cheer,
+  .countdown-caption {
+    font-size: 11px;
+  }
+}
+@media (max-height: 599px) and (min-width: 451px) {
+  .player-controls {
+    position: absolute;
+    left: calc(-1 * var(--rail-width) - 8px);
+    bottom: 0;
+    width: var(--rail-width);
+  }
+  .choice-guidance {
+    font-size: 12px;
+    color: #263b23;
+    background: #fff5df;
+    padding: 6px;
+  }
+  .tray-dock {
+    gap: 12px;
+  }
+  .countdown-burst {
+    width: 126px;
+    height: 126px;
+  }
+  .countdown-burst strong {
+    font-size: 80px;
+  }
+  .countdown-cheer,
+  .countdown-caption {
+    font-size: 10px;
+  }
+  .countdown-star {
+    width: 27px;
+    height: 27px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flying-number {
+    display: none;
+  }
+  .is-drawing .live-number {
+    visibility: visible;
+  }
+}
