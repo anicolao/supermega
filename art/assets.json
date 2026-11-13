@@ -126,5 +126,13 @@
     "height": 1484,
     "alpha": true,
     "runtime": "/assets/generated/numberback.webp"
+  },
+  {
+    "id": "action-button",
+    "source": "art/source/action-button.png",
+    "width": 1838,
+    "height": 856,
+    "alpha": true,
+    "runtime": "/assets/generated/action-button.webp"
   }
 ]

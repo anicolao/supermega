@@ -100,5 +100,11 @@
     "prompt": "Use case: precise-object-edit. Edit the supplied generated square game-card reverse into a PORTRAIT 5:7 number-card reverse. Preserve the rich handpainted retro carnival construction, gold inlay, cream/coral radial sunburst, teal central cartouche and broad decorative corner sweeps. Recompose for a portrait silhouette, do not simply stretch the square image. Change outer border to forest green. Keep a large quiet empty teal center for live title lettering added later. No text, numbers, new objects, or perspective. Transparent exterior; object fills96% canvas. Intended display65–180 CSSpx wide, so broad strong forms, restrained texture. Preserve upper-left lighting and crisp rounded edges.",
     "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-acf7bd67-608a-4492-ae4b-9af0ea64c0b1.png",
     "reference": "art/source/back.png"
+  },
+  {
+    "id": "action-button",
+    "tool": "built-in imagegen",
+    "prompt": "Use case: stylized-concept. Asset type: actual production game action-button body layer, not a screenshot or UI mockup. Generate ONE horizontal tactile illustrated button, aspect ratio 2.15:1, centered and filling 96% of the image, truly transparent exterior. It will display at 84 by 44 CSS pixels on a phone and 108 by 52 on larger game tables. Whimsical premium hand-painted retro carnival board-game style: a chunky warm ivory glazed ceramic face, smooth softly rounded ends (a little squarer than a capsule), narrow antique-gold beveled rim with a very thin forest-green enamel outside edge, gentle broad highlight upper left and shallow shaded bottom thickness. The ENTIRE central 75% width and 60% height must be quiet pale ivory, empty, for separately rendered dark green text. Very restrained texture and minimal ornament; rich material instead of decorative clutter. Orthographic directly front facing, no perspective tilt. No text, no letters, no symbols, no icons, no stars, no surrounding table, no background, no external drop shadow. A single reusable blank graphical button object, with clear silhouette at 84x44, not a web panel.",
+    "source": "/Users/anicolao/.codex/generated_images/01a1d341-73a1-7242-8058-cf9fe97b5cb0/exec-bd18907c-fb14-4da5-a2e8-87ac08b8fd77.png"
   }
 ]
