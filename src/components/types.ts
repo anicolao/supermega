@@ -1,9 +1,9 @@
 export type SymbolName = 'bolt' | 'double-bolt' | 'moon' | 'star' | 'wild' | 'box' | 'cross';
-export type Reward = SymbolName | number;
+export type Reward = SymbolName | number | null;
 export type RewardState = 'unearned' | 'pending' | 'applied';
 export type PieceState = 'available' | 'selected';
 export interface LuckyCardData { id: string; serial: string; color: string; numbers: number[]; rewards: Reward[]; }
-export interface CardView { marked?: number[]; bonuses?: RewardState[]; interactive?: boolean; back?: boolean; canUndo?: boolean; }
+export interface CardView { marked?: number[]; bonuses?: RewardState[]; interactive?: boolean; inspectable?: boolean; back?: boolean; canUndo?: boolean; }
 export interface MarkChoice { type: 'mark'; cardId: string; cell: number; }
 export interface ApplyBonusChoice { type: 'apply-bonus'; cardId: string; bonus: number; }
 export type CardChoice = MarkChoice | ApplyBonusChoice;

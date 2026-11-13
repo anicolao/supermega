@@ -4,18 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5197 --strictPort",
-    "build": "vite build",
+    "dev": "node scripts/prepare-review.mjs && vite --host 0.0.0.0 --port 5197 --strictPort",
+    "build": "node scripts/prepare-review.mjs && vite build && node scripts/finish-build.mjs",
     "check": "tsc --noEmit",
-    "test": "node scripts/verify.mjs",
-    "art:prepare": "node scripts/prepare-art.mjs"
+    "test": "node --test tests/unit/*.test.ts",
+    "art:prepare": "node scripts/prepare-art.mjs",
+    "review:gallery": "node scripts/verify.mjs",
+    "preview": "vite preview --host 0.0.0.0 --port 4197 --strictPort",
+    "emulators": "npx --yes firebase-tools@15.35.0 emulators:start --project demo-supermega --only auth,firestore"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
-    "@fontsource/lilita-one": "^5.2.6"
+    "@fontsource/lilita-one": "^5.2.6",
+    "firebase": "^13.3.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@anicolao/e2e": "git+https://github.com/anicolao/e2e.git#20336938933d89799837d98534d560c946dbb1d7",
     "@playwright/test": "^1.61.1",
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vite": "^8.1.4"
@@ -24,5 +32,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/anicolao/supermega.git"
+  },
+  "engines": {
+    "node": ">=24.18.1"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.7"
   }
 }
