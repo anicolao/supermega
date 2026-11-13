@@ -8,6 +8,7 @@ import {
   pendingBonuses,
   targets,
   currentNumber,
+  lightningDelta,
   canFinish,
   total,
   score,
@@ -297,4 +298,35 @@ test("moon scoring covers solo, two-player ties, and multi-player penalties", ()
   s.players = s.players.slice(0, 1);
   s.players[0].moons = 6;
   assert.equal(score(s, s.players[0]).moons, 10);
+});
+
+test("direct well taps choose the cheapest circular lightning cost and undo refunds it", () => {
+  assert.equal(lightningDelta(9, 1), 1);
+  assert.equal(lightningDelta(1, 9), -1);
+  assert.equal(lightningDelta(2, 8), -3);
+  for (let draw = 1; draw <= 9; draw++) {
+    for (let target = 1; target <= 9; target++) {
+      const delta = lightningDelta(draw, target);
+      assert.equal(((draw - 1 + delta + 9) % 9) + 1, target);
+      assert.equal(
+        Math.abs(delta),
+        Math.min(Math.abs(target - draw), 9 - Math.abs(target - draw)),
+      );
+    }
+  }
+  let s = setup();
+  const p = s.players[0],
+    card = p.cards[0];
+  const cell = cardById(card.template).numbers.findIndex(
+    (n) => n !== currentNumber(s),
+  );
+  const delta = lightningDelta(
+    currentNumber(s),
+    cardById(card.template).numbers[cell],
+  );
+  const before = structuredClone(p);
+  s = step(s, { type: "mark", playerId: p.id, cardId: card.id, cell, delta });
+  assert.equal(s.players[0].bolts, before.bolts - Math.abs(delta));
+  s = step(s, { type: "undo", playerId: p.id });
+  assert.deepEqual(s.players[0], before);
 });

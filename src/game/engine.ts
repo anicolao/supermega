@@ -217,6 +217,11 @@ export function targets(player: Player, value: number | "wild") {
     ),
   );
 }
+/** Smallest signed adjustment on the circular 1–9 number track. */
+export function lightningDelta(drawn: number, target: number) {
+  const forward = (target - drawn + 9) % 9;
+  return forward <= 4 ? forward : forward - 9;
+}
 export const currentNumber = (s: State) => s.numberDeck[s.turn - 1];
 export function canFinish(s: State, p: Player) {
   return (
