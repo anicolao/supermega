@@ -8,6 +8,9 @@ import {
   pendingBonuses,
   targets,
   currentNumber,
+  VERSION,
+  automaticBonuses,
+  lines,
   commandForTarget,
   lightningDelta,
   canFinish,
@@ -28,8 +31,8 @@ function event(s: State, command: Command, actor = "alice"): GameEvent {
     command,
   };
 }
-function step(s: State, command: Command, actor = "alice") {
-  return applyEvent(s, event(s, command, actor));
+function step(s: State, command: Command, actor = "alice", version = 1) {
+  return applyEvent(s, { ...event(s, command, actor), version });
 }
 function setup(capacity = 1) {
   let s = step(initial(), {
@@ -54,11 +57,23 @@ function setup(capacity = 1) {
     );
   return step(s, { type: "reveal" });
 }
-function resolve(s: State, p: Player) {
+function resolve(s: State, p: Player, version = 1) {
   for (let guard = 0; guard < 80; guard++) {
     p = s.players.find((x) => x.id === p.id)!;
-    const pending = pendingBonuses(p)[0];
-    if (!pending) return s;
+    const all = pendingBonuses(p);
+    const pending =
+      version >= 2
+        ? all.find((b) => typeof b.reward === "number" || b.reward === "wild")
+        : all[0];
+    if (!pending) {
+      if (version >= 2)
+        assert.equal(
+          all.length,
+          0,
+          "Passive rewards must not need collection clicks",
+        );
+      return s;
+    }
     const value = pending.reward;
     const destination =
       typeof value === "number" || value === "wild"
@@ -76,11 +91,12 @@ function resolve(s: State, p: Player) {
           : {}),
       },
       p.controller,
+      version,
     );
   }
   throw Error("Bonus loop");
 }
-function turn(s: State) {
+function turn(s: State, version = 1) {
   for (const original of [...s.players]) {
     let p = s.players.find((x) => x.id === original.id)!;
     if (!p.usedDraw) {
@@ -96,11 +112,13 @@ function turn(s: State) {
             delta: 0,
           },
           p.controller,
+          version,
         );
     }
-    s = resolve(s, p);
+    s = resolve(s, p, version);
     p = s.players.find((x) => x.id === p.id)!;
-    if (!p.ready) s = step(s, { type: "finish", playerId: p.id }, p.controller);
+    if (!p.ready)
+      s = step(s, { type: "finish", playerId: p.id }, p.controller, version);
   }
   return s;
 }
@@ -332,7 +350,7 @@ test("direct well taps choose the cheapest circular lightning cost and undo refu
   assert.deepEqual(s.players[0], before);
 });
 
-function earnedNumber(reward: number | "wild", id: string) {
+function earnedNumber(reward: number | "wild" | "star", id: string) {
   const card = deck.find((c) => c.rewards.slice(0, 3).includes(reward))!;
   const bonus = card.rewards.indexOf(reward);
   return {
@@ -424,4 +442,143 @@ test("matching target taps resolve bonuses after the base draw is spent and reje
     () => commandForTarget(s, p.id, "target", cell),
     /already marked/,
   );
+});
+
+function crossingRewards() {
+  const template = deck.find(
+    (c) =>
+      c.rewards.slice(0, 3).includes("star") &&
+      c.rewards.slice(3).includes("moon"),
+  )!;
+  const row = template.rewards.indexOf("star"),
+    column = template.rewards.indexOf("moon");
+  const cell = lines[row].find((i) => lines[column].includes(i))!;
+  return {
+    template,
+    row,
+    column,
+    cell,
+    marks: [...new Set([...lines[row], ...lines[column]])].filter(
+      (i) => i !== cell,
+    ),
+  };
+}
+test("v2 settles stars and moons in the number choice, with one undo restoring the whole action", () => {
+  let s = setup();
+  const p = s.players[0],
+    f = crossingRewards();
+  p.cards = [
+    {
+      id: "awards",
+      template: Number(f.template.id),
+      marks: f.marks,
+      applied: [],
+    },
+  ];
+  s.numberDeck[s.turn - 1] = f.template.numbers[f.cell];
+  const before = structuredClone(p);
+  s = step(
+    s,
+    { type: "mark", playerId: p.id, cardId: "awards", cell: f.cell, delta: 0 },
+    "alice",
+    VERSION,
+  );
+  assert.equal(s.players[0].moons, before.moons + 1);
+  assert.equal(s.players[0].stars[0], 1);
+  assert.equal(pendingBonuses(s.players[0]).length, 0);
+  assert.equal(s.undo[p.id].length, 1);
+  s = step(s, { type: "undo", playerId: p.id }, "alice", VERSION);
+  assert.deepEqual(s.players[0], before);
+  assert.equal(s.undo[p.id].length, 0);
+});
+test("v2 defers passive awards until the last usable number bonus resolves", () => {
+  let s = setup();
+  const p = s.players[0],
+    fixed = earnedNumber(7, "fixed"),
+    star = earnedNumber("star", "star"),
+    template = deck.find((c) => c.numbers.includes(7))!;
+  p.cards = [
+    fixed.box,
+    star.box,
+    { id: "target", template: Number(template.id), marks: [], applied: [] },
+  ];
+  const base = template.numbers.findIndex((n) => n !== 7),
+    bonus = template.numbers.indexOf(7);
+  s.numberDeck[s.turn - 1] = template.numbers[base];
+  s = step(
+    s,
+    { type: "mark", playerId: p.id, cardId: "target", cell: base, delta: 0 },
+    "alice",
+    VERSION,
+  );
+  assert.equal(s.players[0].stars[0], 0);
+  assert.equal(bonusStates(s.players[0].cards[1])[star.bonus], "pending");
+  s = step(s, commandForTarget(s, p.id, "target", bonus), "alice", VERSION);
+  assert.equal(s.players[0].stars[0], 1);
+  assert.equal(bonusStates(s.players[0].cards[1])[star.bonus], "applied");
+  s = step(s, { type: "undo", playerId: p.id }, "alice", VERSION);
+  assert.equal(s.players[0].stars[0], 0);
+  assert.equal(bonusStates(s.players[0].cards[0])[fixed.bonus], "pending");
+});
+test("legacy pending awards can settle on upgrade without adding an undo step; protocol cannot downgrade", () => {
+  let s = setup();
+  const p = s.players[0],
+    f = crossingRewards();
+  p.cards = [
+    {
+      id: "awards",
+      template: Number(f.template.id),
+      marks: f.marks,
+      applied: [],
+    },
+  ];
+  s.numberDeck[s.turn - 1] = f.template.numbers[f.cell];
+  s = step(s, {
+    type: "mark",
+    playerId: p.id,
+    cardId: "awards",
+    cell: f.cell,
+    delta: 0,
+  });
+  assert.equal(s.version, 1);
+  assert.equal(s.players[0].stars[0], 0);
+  const bonus = automaticBonuses(s, s.players[0])[0];
+  s = step(
+    s,
+    { type: "bonus", playerId: p.id, cardId: bonus.cardId, bonus: bonus.bonus },
+    "alice",
+    VERSION,
+  );
+  assert.equal(s.version, VERSION);
+  assert.equal(s.players[0].stars[0], 1);
+  assert.equal(s.players[0].moons, 1);
+  assert.equal(s.undo[p.id].length, 1);
+  assert.throws(() => step(s, { type: "undo", playerId: p.id }), /version/);
+  s = step(s, { type: "undo", playerId: p.id }, "alice", VERSION);
+  assert.equal(s.players[0].cards[0].marks.length, f.marks.length);
+  assert.equal(s.players[0].stars[0], 0);
+});
+test("v2 full games for one through six players finish with no resource collection clicks", () => {
+  for (const capacity of [1, 2, 3, 4, 5, 6]) {
+    let s = setup(capacity);
+    for (let round = 1; round <= 4; round++) {
+      for (let draw = 1; draw <= 9; draw++) {
+        s = turn(s, VERSION);
+        if (draw < 9) s = step(s, { type: "reveal" }, "alice", VERSION);
+      }
+      s = step(s, { type: "next-round" }, "alice", VERSION);
+      if (round < 4) {
+        for (const p of [...s.players])
+          s = step(
+            s,
+            { type: "choose", playerId: p.id, cards: [p.offers[0].id] },
+            p.controller,
+            VERSION,
+          );
+        s = step(s, { type: "reveal" }, "alice", VERSION);
+      }
+    }
+    assert.equal(s.phase, "finished");
+    assert.equal(s.version, VERSION);
+  }
 });
