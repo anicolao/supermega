@@ -8,6 +8,7 @@ import {
   pendingBonuses,
   targets,
   currentNumber,
+  commandForTarget,
   lightningDelta,
   canFinish,
   total,
@@ -329,4 +330,98 @@ test("direct well taps choose the cheapest circular lightning cost and undo refu
   assert.equal(s.players[0].bolts, before.bolts - Math.abs(delta));
   s = step(s, { type: "undo", playerId: p.id });
   assert.deepEqual(s.players[0], before);
+});
+
+function earnedNumber(reward: number | "wild", id: string) {
+  const card = deck.find((c) => c.rewards.slice(0, 3).includes(reward))!;
+  const bonus = card.rewards.indexOf(reward);
+  return {
+    box: {
+      id,
+      template: Number(card.id),
+      marks: [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+      ][bonus],
+      applied: [] as number[],
+    },
+    bonus,
+  };
+}
+test("a target tap consumes its matching pending number before the draw or a wild, and undo restores it", () => {
+  let s = setup();
+  const p = s.players[0];
+  const exact = earnedNumber(7, "exact"),
+    wild = earnedNumber("wild", "wild");
+  const targetTemplate = deck.find((c) => c.numbers.includes(7))!;
+  p.cards = [
+    exact.box,
+    wild.box,
+    {
+      id: "target",
+      template: Number(targetTemplate.id),
+      marks: [],
+      applied: [],
+    },
+  ];
+  s.numberDeck[s.turn - 1] = 7;
+  const cell = targetTemplate.numbers.indexOf(7),
+    before = structuredClone(p);
+  const command = commandForTarget(s, p.id, "target", cell);
+  assert.equal(command.type, "bonus");
+  if (command.type !== "bonus") throw Error("Expected bonus");
+  assert.equal(command.cardId, "exact");
+  s = step(s, command);
+  assert.equal(s.players[0].usedDraw, false);
+  assert.equal(s.players[0].bolts, before.bolts);
+  assert.equal(bonusStates(s.players[0].cards[0])[exact.bonus], "applied");
+  assert.equal(bonusStates(s.players[0].cards[1])[wild.bonus], "pending");
+  s = step(s, { type: "undo", playerId: p.id });
+  assert.deepEqual(s.players[0], before);
+});
+test("direct targets preserve wilds for a free draw, then use wilds before paid lightning", () => {
+  let s = setup();
+  const p = s.players[0],
+    wild = earnedNumber("wild", "wild");
+  p.cards = [wild.box, { id: "target", template: 1, marks: [], applied: [] }];
+  const n = cardById(1).numbers[0];
+  s.numberDeck[s.turn - 1] = n;
+  assert.equal(commandForTarget(s, p.id, "target", 0).type, "mark");
+  const explicit = commandForTarget(s, p.id, "target", 0, {
+    cardId: "wild",
+    bonus: wild.bonus,
+  });
+  assert.equal(explicit.type, "bonus");
+  s.numberDeck[s.turn - 1] = n === 9 ? 1 : n + 1;
+  const automatic = commandForTarget(s, p.id, "target", 0);
+  assert.equal(automatic.type, "bonus");
+  const bolts = p.bolts;
+  s = step(s, automatic);
+  assert.equal(s.players[0].bolts, bolts);
+  assert.equal(s.players[0].usedDraw, false);
+});
+test("matching target taps resolve bonuses after the base draw is spent and reject marked cells", () => {
+  let s = setup();
+  const p = s.players[0],
+    exact = earnedNumber(7, "exact");
+  const targetTemplate = deck.find((c) => c.numbers.includes(7))!;
+  p.cards = [
+    exact.box,
+    {
+      id: "target",
+      template: Number(targetTemplate.id),
+      marks: [],
+      applied: [],
+    },
+  ];
+  p.usedDraw = true;
+  const cell = targetTemplate.numbers.indexOf(7);
+  s = step(s, commandForTarget(s, p.id, "target", cell));
+  assert.ok(s.players[0].cards[1].marks.includes(cell));
+  assert.equal(s.players[0].usedDraw, true);
+  assert.throws(
+    () => commandForTarget(s, p.id, "target", cell),
+    /already marked/,
+  );
 });
