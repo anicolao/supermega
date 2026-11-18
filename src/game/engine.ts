@@ -223,6 +223,59 @@ export function lightningDelta(drawn: number, target: number) {
   return forward <= 4 ? forward : forward - 9;
 }
 export const currentNumber = (s: State) => s.numberDeck[s.turn - 1];
+/** Resolve a direct well tap without requiring a separate bonus-source tap. */
+export function commandForTarget(
+  s: State,
+  playerId: string,
+  cardId: string,
+  cell: number,
+  preferred?: { cardId: string; bonus: number },
+): Command {
+  const p = s.players.find((player) => player.id === playerId);
+  requireThat(
+    p && s.phase === "playing" && !p.ready,
+    "Wait for the next number, or undo your ready choice.",
+  );
+  const destination = box(p!, cardId);
+  openSquare(destination, cell);
+  const number = cardById(destination.template).numbers[cell];
+  const pending = pendingBonuses(p!);
+  const selected = preferred
+    ? pending.find(
+        (b) => b.cardId === preferred.cardId && b.bonus === preferred.bonus,
+      )
+    : undefined;
+  if (preferred)
+    requireThat(
+      selected && (selected.reward === number || selected.reward === "wild"),
+      "The selected bonus does not match that square.",
+    );
+  const exact = pending.find((b) => b.reward === number);
+  const freeDraw = !p!.usedDraw && currentNumber(s) === number;
+  const source =
+    selected ??
+    exact ??
+    (!freeDraw ? pending.find((b) => b.reward === "wild") : undefined);
+  if (source)
+    return {
+      type: "bonus",
+      playerId,
+      cardId: source.cardId,
+      bonus: source.bonus,
+      targetCard: cardId,
+      cell,
+    };
+  requireThat(
+    !p!.usedDraw,
+    "Your draw is used. Tap a number matching a pending bonus.",
+  );
+  const delta = lightningDelta(currentNumber(s), number);
+  requireThat(
+    Math.abs(delta) <= p!.bolts,
+    "Not enough lightning for that adjustment.",
+  );
+  return { type: "mark", playerId, cardId, cell, delta };
+}
 export function canFinish(s: State, p: Player) {
   return (
     s.phase === "playing" &&

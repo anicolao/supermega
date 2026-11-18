@@ -1666,3 +1666,93 @@ body:has(.game-page) .inspection-feedback {
 .inspection-actions .game-action {
   width: 104px;
 }
+/* Keep the current tray visible while comparing the next round's offers. */
+.draft-comparison {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.draft-comparison > section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.draft-comparison h3 {
+  font: 18px/1.2 var(--heading);
+  color: #182b18;
+  background: #fff5e0f2;
+  text-align: center;
+  padding: 4px;
+  margin: 4px 0;
+}
+.draft-comparison .card-pages {
+  flex-shrink: 0;
+  gap: 0;
+}
+.draft-comparison .card-pages button {
+  padding: 2px;
+}
+.draft-comparison .lucky-card .number-cell {
+  font-size: clamp(18px, 12cqw, 36px) !important;
+  line-height: 1;
+}
+.draft-comparison .lucky-card .card-heading {
+  font-size: clamp(7px, 4cqw, 12px) !important;
+}
+.draft-comparison .lucky-card .reward-slot .reward {
+  --bonus-size: clamp(25px, 14.3cqw, 50px);
+}
+.draft-comparison .lucky-card .reward-slot .reward .symbol {
+  width: 90%;
+  height: 90%;
+}
+.lightning-flight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  overflow: visible;
+}
+.spent-lightning {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px #4c381e66);
+  will-change: transform, opacity;
+}
+@media (max-width: 650px) {
+  .draft-comparison {
+    gap: 8px;
+  }
+  .draft-comparison h3 {
+    font-size: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lightning-flight-layer {
+    display: none;
+  }
+}
+.draft-comparison .comparison-pages {
+  gap: 0;
+}
+.draft-comparison .comparison-pages button {
+  width: 44px;
+  min-width: 44px;
+  background: url("/assets/generated/well.webp") center/38px 38px no-repeat;
+  border: 0;
+  font-size: 26px;
+}
+.draft-comparison .comparison-pages span {
+  padding: 2px;
+  font-size: 11px;
+  min-width: 20px;
+  text-align: center;
+}

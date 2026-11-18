@@ -22,7 +22,7 @@ import {
   pendingBonuses,
   targets,
   currentNumber,
-  lightningDelta,
+  commandForTarget,
   canFinish,
   canAdvance,
   score,
@@ -43,6 +43,7 @@ import {
 } from "./sound.ts";
 import QRCode from "qrcode";
 import { animateDraw } from "./draw-animation.ts";
+import { animateLightning, cancelLightning } from "./lightning-animation.ts";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 let state: State | undefined,
   events: GameEvent[] = [],
@@ -115,7 +116,7 @@ const inspector = new CardInspector(
 );
 function feedback() {
   const p = state?.players.find((p) => p.id === inspectedPlayer);
-  return `<span>${escape(message || "Tap a number or a pending bonus.")}</span>${p && p.controller === uid ? `<div class="card-action-dock inspection-actions">${trayActions(p)}</div>` : ""}`;
+  return `<span>${escape(message || "Tap a square to use a matching bonus or your draw.")}</span>${p && p.controller === uid && (state?.phase === "playing" || state?.undo[p.id]?.length) ? `<div class="card-action-dock inspection-actions">${trayActions(p)}</div>` : ""}`;
 }
 const brand = `<a class="wordmark" href="/"><span class="brand-box">${symbol("box")}</span><span>SUPER MEGA<br><b>LUCKY BOX</b></span></a>`;
 function header() {
@@ -132,15 +133,18 @@ function lobby() {
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
-  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap your glowing bonuses." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
+  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap a matching square to use a bonus." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
 }
 function trayActions(p: Player) {
   if (p.controller !== uid) return "";
   return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
 }
-function boxes(p: Player, offered: boolean) {
+function boxes(p: Player, offered: boolean, comparison = false) {
+  const layoutKey = comparison
+    ? `${p.id}:${offered ? "offers" : "hand"}`
+    : p.id;
   const cards = offered ? p.offers : p.cards;
-  const layout = cardLayouts.get(p.id) ?? {
+  const layout = cardLayouts.get(layoutKey) ?? {
     capacity: 1,
     columns: 1,
     size: 260,
@@ -153,8 +157,8 @@ function boxes(p: Player, offered: boolean) {
         layout.capacity,
     ),
   );
-  const page = Math.min(cardPages.get(p.id) ?? preferredPage, pages - 1);
-  cardPages.set(p.id, page);
+  const page = Math.min(cardPages.get(layoutKey) ?? preferredPage, pages - 1);
+  cardPages.set(layoutKey, page);
   const visible = cards.slice(
     page * layout.capacity,
     (page + 1) * layout.capacity,
@@ -166,28 +170,30 @@ function boxes(p: Player, offered: boolean) {
     ? active
     : visible[0]?.id;
   const selected = selections.get(p.id) ?? [];
-  const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${p.id}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${p.id}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${p.id}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">↩</button>` : ""}</nav>`;
-  return `<div class="card-surface" data-layout-player="${p.id}" data-card-count="${cards.length}" data-action-space="${offered ? 0 : 44}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>${
-    offered
-      ? `<nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
-          { length: pages },
-          (_, i) =>
-            `<button data-game="card-page" data-player="${p.id}" data-page="${i}" aria-pressed="${page === i}" aria-label="Card page ${i + 1}">${cards
-              .slice(i * layout.capacity, (i + 1) * layout.capacity)
-              .map(
-                (box) =>
-                  `${art(box).serial}${selected.includes(box.id) ? " ✓" : ""}`,
-              )
-              .join(" · ")}</button>`,
-        ).join("")}</nav>`
-      : ""
+  const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">↩</button>` : ""}</nav>`;
+  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-card-min="${comparison ? 150 : 260}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}${comparison ? "" : `<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div>`}</div>`)).join("")}</div></div>${
+    comparison
+      ? `<nav class="card-pages tray-pages comparison-pages" aria-label="${escape(p.name)}’s ${offered ? "new" : "existing"} cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous ${offered ? "new" : "existing"} cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next ${offered ? "new" : "existing"} cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : `<span>All ${cards.length} cards</span>`}</nav>`
+      : offered
+        ? `<nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
+            { length: pages },
+            (_, i) =>
+              `<button data-game="card-page" data-player="${layoutKey}" data-page="${i}" aria-pressed="${page === i}" aria-label="Card page ${i + 1}">${cards
+                .slice(i * layout.capacity, (i + 1) * layout.capacity)
+                .map(
+                  (box) =>
+                    `${art(box).serial}${selected.includes(box.id) ? " ✓" : ""}`,
+                )
+                .join(" · ")}</button>`,
+          ).join("")}</nav>`
+        : ""
   }`;
 }
 function playerArea(p: Player) {
   const own = p.controller === uid,
     offered = state!.phase === "draft" && !!p.offers.length;
   const selected = selections.get(p.id) ?? [];
-  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${p.bolts} lightning">${p.bolts}</b>${token("moon")}<b>${p.moons}</b>${symbol("star")}<b>${p.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? boxes(p, true) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
+  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${p.bolts} lightning">${p.bolts}</b>${token("moon")}<b>${p.moons}</b>${symbol("star")}<b>${p.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? (p.cards.length ? `<div class="draft-comparison"><section class="draft-hand"><h3>Your tray · ${p.cards.length}</h3>${boxes(p, false, true)}</section><section class="draft-new"><h3>New cards</h3>${boxes(p, true, true)}</section></div>` : boxes(p, true)) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
 }
 function describe(e: GameEvent) {
   const c = e.command,
@@ -268,11 +274,11 @@ function renderPanel() {
   const helpPages = [
     [
       "Your Lucky Boxes",
-      "Keep 3 of your first 5 cards. Everyone plays the same drawn number. Tap any open square: the cheapest lightning adjustment is spent automatically, wrapping 9 ↔ 1. Each lightning changes the number by one. Undo restores the mark and its cost.",
+      "Keep 3 of your first 5 cards. Everyone plays the same drawn number. Tap any open square: matching bonuses apply automatically, and any needed lightning adjustment wraps 9 ↔ 1. Each lightning changes the number by one. Undo restores the mark and its cost.",
     ],
     [
       "Chain reactions",
-      "Complete a row or column, then tap its glowing bonus. Collect lightning, moons, or stars directly. A printed number marks another matching square; ? marks any open square. Bonus numbers never spend lightning. Resolve every pending bonus, then choose Ready.",
+      "Complete a row or column to earn a bonus. Tap a matching square to consume a printed number automatically. A wild bonus marks any open square. Taps use a matching printed bonus first, then the free drawn number, then a wild, then lightning. You can still tap a bonus first to choose its source explicitly. Tap lightning, moons, or stars to collect them. Resolve bonuses, then choose Ready.",
     ],
     [
       "Your pace",
@@ -309,8 +315,12 @@ function observeCards() {
         count = Number(element.dataset.cardCount),
         { width, height } = entry.contentRect;
       const actionSpace = Number(element.dataset.actionSpace ?? 0);
-      const maxColumns = Math.max(1, Math.floor((width + 8) / 268)),
-        maxRows = Math.max(1, Math.floor((height + 8) / (268 + actionSpace)));
+      const minimum = Number(element.dataset.cardMin ?? 260);
+      const maxColumns = Math.max(1, Math.floor((width + 8) / (minimum + 8))),
+        maxRows = Math.max(
+          1,
+          Math.floor((height + 8) / (minimum + 8 + actionSpace)),
+        );
       const capacity = Math.max(1, Math.min(count, maxColumns * maxRows));
       const page = Math.min(
         cardPages.get(element.dataset.layoutPlayer!) ?? 0,
@@ -328,7 +338,7 @@ function observeCards() {
             Math.min(
               (width - 8 * (columns - 1)) / columns,
               (height - 8 * (rows - 1)) / rows - actionSpace,
-              420,
+              element.dataset.comparison === "true" ? 320 : 420,
             ),
           );
         if (size > best.size) best = { capacity, columns, size };
@@ -791,6 +801,7 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (game === "undo" || action === "undo") {
+      cancelLightning();
       const playerId =
         button.dataset.player ??
         findBox(button.closest<HTMLElement>("[data-card-id]")!.dataset.cardId!)
@@ -845,33 +856,35 @@ document.addEventListener("click", async (e) => {
       const { p, box } = findBox(button.dataset.card!),
         cell = Number(button.dataset.cell);
       lastCards.set(p.id, box.id);
-      if (activeBonus && activeBonus.playerId === p.id) {
-        if (
-          await send({
-            type: "bonus",
-            playerId: p.id,
-            cardId: activeBonus.cardId,
-            bonus: activeBonus.bonus,
-            targetCard: box.id,
-            cell,
-          })
+      const command = commandForTarget(
+        state!,
+        p.id,
+        box.id,
+        cell,
+        activeBonus?.playerId === p.id ? activeBonus : undefined,
+      );
+      const cost = command.type === "mark" ? Math.abs(command.delta) : 0;
+      const origin = app
+        .querySelector<HTMLElement>(
+          `[data-player-zone="${p.id}"] .seat-resources .token-bolt`,
         )
-          activeBonus = undefined;
-      } else if (
-        await send({
-          type: "mark",
-          playerId: p.id,
-          cardId: box.id,
-          cell,
-          delta: lightningDelta(
-            currentNumber(state!),
-            cardById(box.template).numbers[cell],
-          ),
-        })
-      ) {
-        message = `Marked ${cardById(box.template).numbers[cell]}${Math.abs(lightningDelta(currentNumber(state!), cardById(box.template).numbers[cell])) ? ` · spent ${Math.abs(lightningDelta(currentNumber(state!), cardById(box.template).numbers[cell]))} lightning` : ""}.`;
+        ?.getBoundingClientRect();
+      if (await send(command)) {
+        activeBonus = undefined;
+        message = `Marked ${cardById(box.template).numbers[cell]}${command.type === "bonus" ? " · bonus applied" : cost ? ` · spent ${cost} lightning` : ""}.`;
+        render();
+        const root = dialog.open ? dialog : app;
+        const target = root.querySelector<HTMLElement>(
+          `[data-card="${box.id}"][data-cell="${cell}"]`,
+        );
+        if (cost && origin && target)
+          animateLightning(
+            origin,
+            target,
+            cost,
+            dialog.open ? dialog : document.body,
+          );
       }
-      render();
       return;
     }
   } catch (error) {
