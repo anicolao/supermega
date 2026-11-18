@@ -6,7 +6,9 @@ export type SoundKind =
   | "undo"
   | "reveal"
   | "score"
-  | "error";
+  | "error"
+  | "tick"
+  | "award";
 let context: AudioContext | undefined;
 let muted = localStorage.getItem("supermega:sound") === "off";
 export const soundEnabled = () => !muted;
@@ -43,6 +45,8 @@ export function playSound(kind: SoundKind) {
       reveal: [392, 587, 784],
       score: [523, 659, 784, 1047],
       error: [294],
+      tick: [880],
+      award: [784, 988],
     };
     notes[kind].forEach((frequency, index) => {
       const start = context!.currentTime + index * 0.065,
@@ -55,7 +59,10 @@ export function playSound(kind: SoundKind) {
         start + 0.12,
       );
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.035, start + 0.008);
+      gain.gain.linearRampToValueAtTime(
+        kind === "tick" ? 0.008 : kind === "award" ? 0.022 : 0.035,
+        start + 0.008,
+      );
       gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
       osc.connect(gain).connect(context!.destination);
       osc.start(start);

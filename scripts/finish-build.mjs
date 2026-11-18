@@ -6,7 +6,7 @@ for (const route of ["gallery", "gallery/tabletop", "tabletop"]) {
 await writeFile(
   "dist/build.json",
   JSON.stringify({
-    protocol: 1,
+    protocol: 2,
     sha: process.env.GITHUB_SHA || "local",
     status: "PR1-playtest",
   }),

@@ -18,7 +18,7 @@ import { symbol, rewardLabel } from "../components/symbols.ts";
 import { CardInspector } from "../components/inspector.ts";
 import { cardById } from "./catalog.ts";
 import {
-  bonusStates,
+  automaticBonuses,
   pendingBonuses,
   targets,
   currentNumber,
@@ -42,9 +42,17 @@ import {
   type SoundKind,
 } from "./sound.ts";
 import QRCode from "qrcode";
+import { RewardPresentation } from "./reward-presentation.ts";
+import { ScoreReveal } from "./score-reveal.ts";
 import { animateDraw } from "./draw-animation.ts";
 import { animateLightning, cancelLightning } from "./lightning-animation.ts";
 const app = document.querySelector<HTMLDivElement>("#app")!;
+const awards = new RewardPresentation(
+  () => render(),
+  () => (dialog.open ? dialog : document.body),
+);
+const scoring = new ScoreReveal();
+let lastTickKey = "";
 let state: State | undefined,
   events: GameEvent[] = [],
   uid = "",
@@ -99,9 +107,14 @@ const art = (box: Box) => ({ ...cardById(box.template), id: box.id });
 function cardView(box: Box, p: Player) {
   return {
     marked: box.marks,
-    bonuses: bonusStates(box),
+    bonuses: awards.bonuses(p, box),
+    automaticRewards: true,
     interactive:
-      p.controller === uid && state?.phase === "playing" && !p.ready && !busy,
+      p.controller === uid &&
+      state?.phase === "playing" &&
+      !p.ready &&
+      !busy &&
+      !awards.hasPlayer(p.id),
     inspectable: true,
     canUndo: false,
   };
@@ -133,11 +146,11 @@ function lobby() {
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
-  return `<div class="player-controls"><div class="choice-guidance">${active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap a matching square to use a bonus." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
+  return `<div class="player-controls"><div class="choice-guidance" role="status" aria-live="polite">${awards.message(p.id) ? escape(awards.message(p.id)) : active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap a matching square to use a bonus." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
 }
 function trayActions(p: Player) {
   if (p.controller !== uid) return "";
-  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
+  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy || awards.hasPlayer(p.id) ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
 }
 function boxes(p: Player, offered: boolean, comparison = false) {
   const layoutKey = comparison
@@ -193,7 +206,8 @@ function playerArea(p: Player) {
   const own = p.controller === uid,
     offered = state!.phase === "draft" && !!p.offers.length;
   const selected = selections.get(p.id) ?? [];
-  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${p.bolts} lightning">${p.bolts}</b>${token("moon")}<b>${p.moons}</b>${symbol("star")}<b>${p.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? (p.cards.length ? `<div class="draft-comparison"><section class="draft-hand"><h3>Your tray · ${p.cards.length}</h3>${boxes(p, false, true)}</section><section class="draft-new"><h3>New cards</h3>${boxes(p, true, true)}</section></div>` : boxes(p, true)) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
+  const display = awards.displayed(p);
+  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-collecting="${awards.hasPlayer(p.id)}" aria-busy="${awards.hasPlayer(p.id)}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${location.pathname.startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${display.bolts} lightning">${display.bolts}</b>${token("moon")}<b>${display.moons}</b>${symbol("star")}<b>${display.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? (p.cards.length ? `<div class="draft-comparison"><section class="draft-hand"><h3>Your tray · ${p.cards.length}</h3>${boxes(p, false, true)}</section><section class="draft-new"><h3>New cards</h3>${boxes(p, true, true)}</section></div>` : boxes(p, true)) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
 }
 function describe(e: GameEvent) {
   const c = e.command,
@@ -278,7 +292,7 @@ function renderPanel() {
     ],
     [
       "Chain reactions",
-      "Complete a row or column to earn a bonus. Tap a matching square to consume a printed number automatically. A wild bonus marks any open square. Taps use a matching printed bonus first, then the free drawn number, then a wild, then lightning. You can still tap a bonus first to choose its source explicitly. Tap lightning, moons, or stars to collect them. Resolve bonuses, then choose Ready.",
+      "Complete a row or column to earn a bonus. Tap a matching square to consume a printed number automatically. A wild bonus marks any open square. Taps use a matching printed bonus first, then the free drawn number, then a wild, then lightning. You can still tap a bonus first to choose its source explicitly. Lightning collects automatically. Once number choices finish, moons and stars fly into your status bar. Resolve number bonuses, then choose Ready.",
     ],
     [
       "Your pace",
@@ -369,6 +383,8 @@ function updateAuto() {
     busy ||
     utility.open ||
     inspector.isOpen ||
+    awards.active ||
+    scoring.active ||
     document.hidden
   )
     autoDeadline = 0;
@@ -396,6 +412,11 @@ function updateAuto() {
       const tick = String(
         Math.max(1, Math.ceil((autoDeadline - Date.now()) / 1000)),
       );
+      const tickKey = `${room}:${autoDeadline}:${tick}`;
+      if (tickKey !== lastTickKey) {
+        lastTickKey = tickKey;
+        playSound("tick");
+      }
       if (value.dataset.tick !== tick) {
         value.dataset.tick = tick;
         value.textContent = tick;
@@ -507,6 +528,23 @@ async function attach(code: string) {
       uid,
       room,
       (next, s) => {
+        const before = state;
+        const live = before && before.phase !== "empty";
+        const freshEvents = next.slice(events.length);
+        if (
+          live &&
+          freshEvents.some(
+            (e) => e.command.type === "undo" || e.command.type === "rematch",
+          )
+        ) {
+          awards.cancel();
+          cancelLightning();
+        }
+        const roundScored =
+          live &&
+          before.phase === "playing" &&
+          before.turn === 9 &&
+          freshEvents.some((e) => e.command.type === "next-round");
         const drawChanged =
           state &&
           state.phase !== "empty" &&
@@ -545,7 +583,12 @@ async function attach(code: string) {
           )
             activeBonus = undefined;
         }
+        if (live && !roundScored) awards.capture(before, s);
         render();
+        if (roundScored) {
+          inspector.close();
+          void scoring.show(before, s, uid);
+        }
         if (drawChanged)
           requestAnimationFrame(() => {
             const deck = app.querySelector<HTMLElement>(".live-deck"),
@@ -585,7 +628,8 @@ async function send(command: Command) {
   render();
   try {
     await repo!.append(command);
-    playSound(sounds[command.type] ?? "select");
+    if (command.type !== "bonus" || command.targetCard !== undefined)
+      playSound(sounds[command.type] ?? "select");
     return true;
   } catch (error) {
     message = (error as Error).message;
@@ -802,6 +846,7 @@ document.addEventListener("click", async (e) => {
     }
     if (game === "undo" || action === "undo") {
       cancelLightning();
+      awards.cancel();
       const playerId =
         button.dataset.player ??
         findBox(button.closest<HTMLElement>("[data-card-id]")!.dataset.cardId!)
@@ -919,6 +964,20 @@ if (route) {
           margin: 1,
         });
       render();
+    })
+    .then(async () => {
+      if (state?.version === 1 && state.phase === "playing") {
+        for (const p of state.players.filter((p) => p.controller === uid)) {
+          const bonus = automaticBonuses(state, p)[0];
+          if (bonus)
+            await send({
+              type: "bonus",
+              playerId: p.id,
+              cardId: bonus.cardId,
+              bonus: bonus.bonus,
+            });
+        }
+      }
     })
     .catch(notice);
 }

@@ -1756,3 +1756,129 @@ body:has(.game-page) .inspection-feedback {
   min-width: 20px;
   text-align: center;
 }
+.collected-reward {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  z-index: 110;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 3px #4d371c55);
+}
+.collected-reward img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.round-score-dialog {
+  width: min(520px, calc(100vw - 12px));
+  height: min(780px, calc(100dvh - 12px));
+  max-height: none;
+  padding: 12px;
+  overflow: hidden;
+}
+.round-score-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.round-score-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+}
+.round-score-heading h2 {
+  font: 26px var(--heading);
+  margin: 0;
+}
+.round-score-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.round-score-card {
+  flex: 1;
+  min-height: 0;
+}
+.round-score-card.utility-score .scorecard {
+  height: auto;
+  max-width: 360px;
+  width: min(100%, calc(100cqh * 0.76));
+}
+.round-score-caption {
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: center;
+  min-height: 40px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+.round-score-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+.round-score-controls button {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.round-score-dialog:not(.final-score) .end-score {
+  display: none;
+}
+.round-score-card[data-fill="empty"]
+  .filling-round
+  :is(.score-box-count, .score-stars, .score-round-points),
+.round-score-card[data-fill="boxes"]
+  .filling-round
+  :is(.score-stars, .score-round-points),
+.round-score-card[data-fill="stars"] .filling-round .score-round-points {
+  opacity: 0;
+}
+.round-score-card[data-fill="boxes"] .filling-round .score-box-count,
+.round-score-card[data-fill="stars"] .filling-round .score-stars,
+.round-score-card[data-fill="points"] .filling-round .score-round-points {
+  animation: score-ink 0.35s ease-out;
+}
+@keyframes score-ink {
+  from {
+    filter: brightness(1.4);
+    transform: scale(1.12);
+  }
+  to {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+}
+@media (max-height: 599px) and (min-width: 451px) {
+  .round-score-dialog {
+    width: min(800px, calc(100vw - 12px));
+    padding: 8px;
+    gap: 4px;
+  }
+  .round-score-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 12px;
+  }
+  .round-score-caption {
+    font-size: 18px;
+  }
+  .round-score-card.utility-score .scorecard {
+    width: min(100%, 300px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .collected-reward {
+    display: none;
+  }
+  .round-score-card * {
+    animation: none !important;
+  }
+}

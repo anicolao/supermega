@@ -1,6 +1,6 @@
 import { cardById, deck } from "./catalog.ts";
 import type { RewardState, ScoreData } from "../components/types.ts";
-export const VERSION = 1;
+export const VERSION = 2;
 export const lines = [
   [0, 1, 2],
   [3, 4, 5],
@@ -88,7 +88,7 @@ export type State = {
 };
 export function initial(): State {
   return {
-    version: VERSION,
+    version: 1,
     revision: 0,
     owner: "",
     phase: "empty",
@@ -223,6 +223,32 @@ export function lightningDelta(drawn: number, target: number) {
   return forward <= 4 ? forward : forward - 9;
 }
 export const currentNumber = (s: State) => s.numberDeck[s.turn - 1];
+/** Rewards without a remaining player choice. Lightning is usable immediately;
+ * stars/moons and unusable number bonuses wait until number choices finish. */
+export function automaticBonuses(s: State, p: Player) {
+  if (s.phase !== "playing" || p.ready) return [];
+  const pending = pendingBonuses(p);
+  const numbersDone =
+    (p.usedDraw || !targets(p, currentNumber(s)).length) &&
+    !pending.some(
+      (b) =>
+        (typeof b.reward === "number" || b.reward === "wild") &&
+        targets(p, b.reward).length,
+    );
+  return pending.filter(
+    (b) => b.reward === "bolt" || b.reward === "double-bolt" || numbersDone,
+  );
+}
+function settleRewards(s: State, p: Player) {
+  for (const bonus of automaticBonuses(s, p)) {
+    box(p, bonus.cardId).applied.push(bonus.bonus);
+    if (bonus.reward === "bolt") p.bolts++;
+    if (bonus.reward === "double-bolt") p.bolts += 2;
+    if (bonus.reward === "moon") p.moons++;
+    if (bonus.reward === "star")
+      p.stars[s.round - 1] = Math.min(3, p.stars[s.round - 1] + 1);
+  }
+}
 /** Resolve a direct well tap without requiring a separate bonus-source tap. */
 export function commandForTarget(
   s: State,
@@ -352,7 +378,8 @@ export function total(s: State, p: Player) {
 }
 export function applyEvent(previous: State, event: GameEvent): State {
   requireThat(
-    event.version === VERSION,
+    (event.version === 1 || event.version === VERSION) &&
+      (previous.revision === 0 || event.version >= previous.version),
     "This table uses a different game version. Reload the latest client.",
   );
   requireThat(
@@ -367,6 +394,7 @@ export function applyEvent(previous: State, event: GameEvent): State {
   );
   const s = structuredClone(previous),
     c = event.command;
+  s.version = event.version;
   if (c.type === "create") {
     requireThat(s.phase === "empty", "This room already exists.");
     requireThat(
@@ -576,11 +604,11 @@ export function applyEvent(previous: State, event: GameEvent): State {
             source.applied.push(c.bonus);
             destination.marks.push(c.cell!);
           } else {
-            remember(s, p);
+            if (event.version === 1) remember(s, p);
             source.applied.push(c.bonus);
           }
         } else {
-          remember(s, p);
+          if (event.version === 1) remember(s, p);
           source.applied.push(c.bonus);
           if (reward === "bolt") p.bolts++;
           if (reward === "double-bolt") p.bolts += 2;
@@ -596,6 +624,8 @@ export function applyEvent(previous: State, event: GameEvent): State {
         remember(s, p);
         p.ready = true;
       } else throw Error("Unknown player choice.");
+      if (event.version >= 2 && (c.type === "mark" || c.type === "bonus"))
+        settleRewards(s, p);
     }
   } else throw Error("Unknown game choice.");
   s.revision = event.sequence;
