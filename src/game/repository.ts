@@ -51,10 +51,18 @@ export function connect() {
     });
     if (emulator) {
       const host = import.meta.env.VITE_EMULATOR_HOST || location.hostname;
-      connectAuthEmulator(auth, `http://${host}:9297`, {
-        disableWarnings: true,
-      });
-      connectFirestoreEmulator(db, host, 8197);
+      connectAuthEmulator(
+        auth,
+        `http://${host}:${import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_PORT || 9297}`,
+        {
+          disableWarnings: true,
+        },
+      );
+      connectFirestoreEmulator(
+        db,
+        host,
+        Number(import.meta.env.VITE_FIRESTORE_EMULATOR_PORT || 8197),
+      );
     }
     await auth.authStateReady();
     if (!auth.currentUser) await signInAnonymously(auth);

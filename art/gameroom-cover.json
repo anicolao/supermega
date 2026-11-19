@@ -1,0 +1,11 @@
+{
+  "title": "Super Mega Lucky Box — Game Room shelf cover",
+  "renderer": "scripts/prepare-cover.mjs",
+  "component": "src/components/pieces.ts: cardBack('number')",
+  "artwork": "art/source/numberback.png",
+  "artworkPrompts": "art/generation-manifest.json",
+  "typography": "Lilita One, rendered by the same shared component and font package as the game",
+  "size": { "width": 768, "height": 1024 },
+  "files": ["public/assets/gameroom/cover.png", "public/assets/gameroom/cover.webp"],
+  "note": "Composed from approved imagegen layers; no third-party cover or new generation was used."
+}
