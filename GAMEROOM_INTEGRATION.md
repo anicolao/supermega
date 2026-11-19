@@ -36,7 +36,7 @@ npm run catalog:gameroom
 
 It finds an existing Super Mega document by ID, title, or canonical WebURL before planning one write. Existing document IDs, `URL`, `Hidden`, and unrelated fields remain untouched. New entries are Game Room-only (`Hidden: true` applies to tabletop, not Game Room). An update-time or nonexistence precondition prevents overwriting concurrent edits. Applying requires the deployed launch manifest and a working public-CORS cover, and writes a private backup of only the target record. No bulk seeding or catalog migration occurs.
 
-The proposed record is `Applications/supermega`, with title Super Mega Lucky Box, `GameroomEnabled: integrated`, canonical WebURL `https://supermega-anicolao.web.app/`, and the cover URL above. The production catalog remains unchanged until the reviewed release command is run.
+The proposed record is `Applications/supermega`, with title Super Mega Lucky Box, `GameroomEnabled: integrated`, canonical WebURL `https://supermega-anicolao.web.app/`, and the cover URL above. For PR #2 review, this single entry is active with WebURL and Icon pointing to `https://supermega-anicolao--pr2-ihl3wxr4.web.app/` (preview expiry: December 19, 2026). After merge, `npm run release:gameroom` updates the same document to the canonical URLs above. No other catalog entries were changed.
 
 ## Isolated integration checks
 
