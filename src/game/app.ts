@@ -42,6 +42,13 @@ import {
   type SoundKind,
 } from "./sound.ts";
 import QRCode from "qrcode";
+import {
+  readLaunch,
+  readReturnTo,
+  launchCommand,
+  validTableCode,
+  type GameRoomLaunch,
+} from "./launcher.ts";
 import { RewardPresentation } from "./reward-presentation.ts";
 import { ScoreReveal } from "./score-reveal.ts";
 import { animateDraw } from "./draw-animation.ts";
@@ -53,6 +60,10 @@ const awards = new RewardPresentation(
 );
 const scoring = new ScoreReveal();
 let lastTickKey = "";
+let gameRoomLaunch: GameRoomLaunch | null = null,
+  launchRevision = -1,
+  launchPending = false;
+const legacyReturnTo = readReturnTo(location.search);
 let state: State | undefined,
   events: GameEvent[] = [],
   uid = "",
@@ -317,7 +328,7 @@ function renderPanel() {
                 .slice(panelPage * 5, panelPage * 5 + 5)
                 .map((e) => `<li>${escape(describe(e))}</li>`)
                 .join("")}</ol>`
-            : `<div class="utility-menu"><button data-game="panel" data-panel="help">How to play</button>${state && state.phase !== "empty" ? '<button data-game="panel" data-panel="seats">Player areas</button><button data-game="panel" data-panel="scores">Scorecards</button><button data-game="panel" data-panel="log">Choices at this table</button><button data-game="copy">Copy invitation link</button>' : ""}<a href="/gallery/">Component gallery ↗</a><a href="/review/">Walkthroughs ↗</a></div>`;
+            : `<div class="utility-menu"><button data-game="panel" data-panel="help">How to play</button>${state && state.phase !== "empty" ? '<button data-game="panel" data-panel="seats">Player areas</button><button data-game="panel" data-panel="scores">Scorecards</button><button data-game="panel" data-panel="log">Choices at this table</button><button data-game="copy">Copy invitation link</button>' : ""}${legacyReturnTo ? `<a href="${escape(legacyReturnTo)}" rel="noopener">Back to Game Room ↗</a>` : ""}<a href="/gallery/">Component gallery ↗</a><a href="/review/">Walkthroughs ↗</a></div>`;
   utility.innerHTML = `<div class="utility-heading"><h2 id="utility-title">${panel === "help" ? "How to play" : panel === "scores" ? "Scorecards" : panel === "log" ? "Choices at this table" : panel === "seats" ? "Player areas" : "At the table"}</h2><button class="outlined-button" data-game="close-panel">Close ×</button></div><div class="utility-content ${panel === "scores" ? `utility-score ${scoreParts > 1 ? `score-part score-part-${panelPage % scoreParts}` : ""}` : ""}">${content}</div>${pages > 1 ? `<nav class="utility-pages"><button data-game="panel-page" data-delta="-1" ${panelPage === 0 ? "disabled" : ""}>← Previous</button><span>${panelPage + 1} / ${pages}</span><button data-game="panel-page" data-delta="1" ${panelPage === pages - 1 ? "disabled" : ""}>Next →</button></nav>` : ""}`;
 }
 function observeCards() {
@@ -477,7 +488,7 @@ function render() {
       }
     : undefined;
   app.innerHTML = room
-    ? `${header()}<main class="game-page ${location.pathname.startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : "Finding your table…"}</h1><p>The latest choices are being loaded from Firebase.</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message && !feedbackPlayer ? "has-message" : ""}" role="status" aria-live="polite">${feedbackPlayer ? "" : escape(message)}${repo?.hasPending() ? '<button data-game="retry" class="outlined-button">Retry pending choice</button>' : ""}</div></main>`
+    ? `${header()}<main class="game-page ${location.pathname.startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : gameRoomLaunch?.mode === "join" ? "Waiting for your friends…" : "Opening your table…"}</h1><p>${gameRoomLaunch?.mode === "join" ? "Your seat will appear as soon as the table creator arrives." : "The latest choices are being loaded from Firebase."}</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message && !feedbackPlayer ? "has-message" : ""}" role="status" aria-live="polite">${feedbackPlayer ? "" : escape(message)}${repo?.hasPending() ? '<button data-game="retry" class="outlined-button">Retry pending choice</button>' : ""}</div></main>`
     : `${front()}${message ? `<div class="game-notice has-message" role="status">${escape(message)}</div>` : ""}`;
   document.body.classList.toggle(
     "is-tabletop",
@@ -516,8 +527,7 @@ function render() {
 async function attach(code: string) {
   room = code.toUpperCase();
   autoPaused = localStorage.getItem(`supermega:paused:${room}`) === "true";
-  if (!/^[A-Z2-9]{8}$/.test(room))
-    throw Error("Use the eight-character table code.");
+  if (!validTableCode(room)) throw Error("Use the eight-character table code.");
   const { connect, repository } = await import("./repository.ts");
   const connection = await connect();
   uid = connection.uid;
@@ -596,6 +606,7 @@ async function attach(code: string) {
             if (deck && target) animateDraw(deck, target, currentNumber(s));
           });
         resolve(s);
+        queueMicrotask(() => void processGameRoomLaunch());
       },
       (error) => {
         message = error.message;
@@ -640,6 +651,7 @@ async function send(command: Command) {
     busy = false;
     autoDeadline = 0;
     render();
+    queueMicrotask(() => void processGameRoomLaunch());
   }
 }
 function notice(error: unknown) {
@@ -945,14 +957,63 @@ window.addEventListener("offline", () => {
     "You are offline. Your last acknowledged table is shown; reconnect before making more choices.";
   render();
 });
+async function processGameRoomLaunch() {
+  if (
+    !gameRoomLaunch ||
+    !state ||
+    !uid ||
+    !repo ||
+    busy ||
+    launchPending ||
+    launchRevision === state.revision
+  )
+    return;
+  const launch = gameRoomLaunch;
+  try {
+    const command = launchCommand(launch, state, uid, crypto.randomUUID());
+    if (!command) {
+      if (state.players.some((p) => p.controller === uid))
+        finishGameRoomLaunch();
+      return;
+    }
+    launchRevision = state.revision;
+    launchPending = true;
+    if (await send(command)) {
+      localStorage.setItem("supermega:name", launch.name);
+      finishGameRoomLaunch();
+    }
+  } catch (error) {
+    gameRoomLaunch = null;
+    notice(error);
+  } finally {
+    launchPending = false;
+  }
+}
+function finishGameRoomLaunch() {
+  if (!state?.players.some((p) => p.controller === uid)) return;
+  gameRoomLaunch = null;
+  const destination = new URL(`/table/${room}`, location.origin);
+  if (legacyReturnTo) destination.searchParams.set("returnTo", legacyReturnTo);
+  history.replaceState(null, "", destination.pathname + destination.search);
+  render();
+}
+let launchError: unknown;
+try {
+  gameRoomLaunch = readLaunch(location.search);
+  if (gameRoomLaunch) entry.name = gameRoomLaunch.name;
+} catch (error) {
+  launchError = error;
+}
 render();
 const route = location.pathname.match(
-  /^\/(?:table|tabletop)\/([A-Z2-9]{8})\/?$/i,
+  /^\/(?:table|tabletop)\/([A-Z0-9]{8})\/?$/i,
 );
-if (route) {
-  void attach(route[1])
+const initialTable = gameRoomLaunch?.table ?? route?.[1];
+if (launchError) notice(launchError);
+else if (initialTable) {
+  void attach(initialTable)
     .then(async () => {
-      if (state?.phase === "empty") {
+      if (state?.phase === "empty" && !gameRoomLaunch) {
         message =
           "No table with that code. Check the link or create a new table.";
         render();
@@ -964,8 +1025,7 @@ if (route) {
           margin: 1,
         });
       render();
-    })
-    .then(async () => {
+      await processGameRoomLaunch();
       if (state?.version === 1 && state.phase === "playing") {
         for (const p of state.players.filter((p) => p.controller === uid)) {
           const bonus = automaticBonuses(state, p)[0];

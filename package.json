@@ -11,7 +11,11 @@
     "art:prepare": "node scripts/prepare-art.mjs",
     "review:gallery": "node scripts/verify.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4197 --strictPort",
-    "emulators": "npx --yes firebase-tools@15.35.0 emulators:start --project demo-supermega --only auth,firestore"
+    "emulators": "npx --yes firebase-tools@15.35.0 emulators:start --project demo-supermega --only auth,firestore",
+    "art:cover": "node scripts/prepare-cover.mjs",
+    "catalog:gameroom": "node scripts/register-gameroom.cjs",
+    "release:gameroom": "node scripts/release-gameroom.mjs",
+    "test:gameroom": "node scripts/test-gameroom.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
@@ -24,6 +28,7 @@
     "@playwright/test": "^1.61.1",
     "@types/node": "^26.6.6",
     "@types/qrcode": "^1.5.6",
+    "firebase-tools": "15.35.0",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vite": "^8.1.4"
