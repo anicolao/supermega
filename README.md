@@ -101,7 +101,7 @@ The previous Firebase-hosted site is left intact for existing invitations. Anony
 
 Firestore explicitly uses XHR (`useFetchStreams: false`) with long-polling autodetection, matching Hanami's workaround for WebKit buffering Fetch Streams responses. The transport regression test inspects the actual SDK's applied settings; it does not claim WebKit gameplay e2e coverage.
 
-The rules suite uses `demo-supermega-rules` and dedicated ports: Firestore 8397, WebSocket 8497, hub 4498, logging 4598. It rejects any other emulator host and never clears development or production data. It covers both event protocols, immutable events/receipts, atomic linkage, anonymous access rejection, forged actors, host-only actions, cross-seat writes, and ordered revision/controller constraints.
+The rules suite uses `demo-supermega-rules` and dedicated ports: Firestore 8397, WebSocket 8497, hub 4498, logging 4598. It rejects any other emulator host and never clears development or production data. It covers both event protocols, immutable events/receipts, atomic linkage, unauthenticated access rejection, forged actors, host-only actions, cross-seat writes, and ordered revision/controller constraints.
 
 ## Artwork and license
 
