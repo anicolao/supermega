@@ -36,3 +36,19 @@ test("deployment paths normalize directory slashes and reject URLs and traversal
     assert.throws(() => normalizeBase(value));
   assert.equal(withoutBase("/supermegax/", "/supermega/"), "/supermegax/");
 });
+
+test("legacy table links retain preview, view, query and origin through the Pages 404 redirect", async () => {
+  const { legacyTableUrl } = await import("../../scripts/legacy-table-url.mjs");
+  for (const base of ["/", "/supermega/", "/supermega/pr3/"]) {
+    for (const view of ["table", "tabletop"]) {
+      const destination = new URL(legacyTableUrl(`https://example.org${base}${view}/0a10b203?returnTo=https%3A%2F%2Froom.example%2F#seat`)!);
+      assert.equal(destination.origin, "https://example.org");
+      assert.equal(destination.pathname, base + (view === "tabletop" ? "tabletop/" : ""));
+      assert.equal(destination.searchParams.get("table"), "0A10B203");
+      assert.equal(destination.searchParams.get("returnTo"), "https://room.example/");
+      assert.equal(destination.hash, "#seat");
+    }
+  }
+  assert.equal(legacyTableUrl("https://example.org/supermega/not-a-table/"), null);
+  assert.equal(new URL(legacyTableUrl("https://example.org//other.example/table/0A10B203")!).origin, "https://example.org");
+});
