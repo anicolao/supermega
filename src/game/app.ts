@@ -65,6 +65,8 @@ let gameRoomLaunch: GameRoomLaunch | null = null,
   launchRevision = -1,
   launchPending = false;
 const legacyReturnTo = readReturnTo(location.search);
+const previewScope = import.meta.env.VITE_PREVIEW_ID || "main";
+const lastRoomKey = `supermega:last-room:${previewScope}`;
 let state: State | undefined,
   events: GameEvent[] = [],
   uid = "",
@@ -148,7 +150,7 @@ function header() {
   return `<header class="site-header game-header">${brand}<div class="game-header-actions">${room ? `<a href="${tablePath(room, !routePath().startsWith("/tabletop/"))}" class="table-link">${routePath().startsWith("/tabletop/") ? "Personal view" : "Tabletop view"}</a>` : ""}<button class="text-button" data-game="sound" aria-pressed="${soundEnabled()}" aria-label="${soundEnabled() ? "Mute" : "Enable"} sound">${soundEnabled() ? "♫" : "♫ Off"}</button><button class="text-button" data-game="panel" data-panel="menu">More</button></div></header>`;
 }
 function front() {
-  const previous = localStorage.getItem("supermega:last-room");
+  const previous = localStorage.getItem(lastRoomKey);
   return `${header()}<main class="game-front"><section><p class="eyebrow">A LITTLE LUCK. A LOVELY CHAIN REACTION.</p><h1>Let’s make<br>some <em>MEGA</em> luck.</h1><nav class="front-tabs"><button data-game="front-tab" data-tab="create" aria-pressed="${frontTab === "create"}">New table</button><button data-game="front-tab" data-tab="join" aria-pressed="${frontTab === "join"}">Join friends</button></nav><form id="${frontTab === "create" ? "create-game" : "join-game"}"><label>Your name<input name="name" maxlength="24" value="${escape(entry.name)}" required autocomplete="nickname"></label>${frontTab === "create" ? `<div class="front-options"><label>Play style<select name="mode"><option value="solo" ${entry.mode === "solo" ? "selected" : ""}>Just me</option><option value="web" ${entry.mode === "web" ? "selected" : ""}>Friends on their own screens</option><option value="tabletop" ${entry.mode === "tabletop" ? "selected" : ""}>Around one tabletop</option></select></label><label>Seats<select name="capacity" ${entry.mode === "solo" ? "disabled" : ""}>${[1, 2, 3, 4, 5, 6].map((n) => `<option ${n === (entry.mode === "solo" ? 1 : entry.capacity) ? "selected" : ""}>${n}</option>`).join("")}</select></label></div><button class="primary-link" ${busy ? "disabled" : ""}>${busy ? "Connecting…" : "Create a table ↗"}</button>` : `<label class="code-label">Table code<input name="code" placeholder="Eight-character code" value="${escape(entry.code)}" maxlength="8" autocapitalize="characters" required></label><button class="primary-link" ${busy ? "disabled" : ""}>Join table ↗</button>`}</form>${previous ? `<a class="text-link return-table" href="${tablePath(previous)}">Return to your last table ↗</a>` : ""}<button class="text-button front-help" data-game="panel" data-panel="help">How to play</button></section><aside class="front-pieces" aria-label="Lucky Box game pieces"><div class="front-back">${cardBack("lucky")}</div><div class="front-card">${luckyCard({ ...cardById(1), id: "welcome-box" }, { marked: [0, 1, 3, 6] })}</div><div class="front-number">${numberCard(7)}</div><div class="front-token">${token("bolt")}</div></aside></main>`;
 }
 function lobby() {
@@ -527,7 +529,7 @@ function render() {
 }
 async function attach(code: string) {
   room = code.toUpperCase();
-  autoPaused = localStorage.getItem(`supermega:paused:${room}`) === "true";
+  autoPaused = localStorage.getItem(`supermega:paused:${previewScope}:${room}`) === "true";
   if (!validTableCode(room)) throw Error("Use the eight-character table code.");
   const { connect, repository } = await import("./repository.ts");
   const connection = await connect();
@@ -581,7 +583,7 @@ async function attach(code: string) {
         state = s;
         if (!submitting) busy = false;
         autoFailed = false;
-        localStorage.setItem("supermega:last-room", room);
+        localStorage.setItem(lastRoomKey, room);
         if (activeBonus) {
           const p = s.players.find((p) => p.id === activeBonus!.playerId);
           if (
@@ -776,7 +778,7 @@ document.addEventListener("click", async (e) => {
     }
     if (game === "auto-pause") {
       autoPaused = autoFailed ? false : !autoPaused;
-      localStorage.setItem(`supermega:paused:${room}`, String(autoPaused));
+      localStorage.setItem(`supermega:paused:${previewScope}:${room}`, String(autoPaused));
       autoFailed = false;
       autoDeadline = 0;
       render();

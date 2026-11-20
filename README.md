@@ -86,7 +86,7 @@ GitHub Pages serves the application; Firebase provides only Anonymous Auth and F
 
 The verify-and-deploy workflow publishes exactly its successfully checked build artifact to the `gh-pages` branch, retaining other preview directories. Configure the repository's Pages source as `gh-pages` at `/`. Same-repository PRs publish previews automatically; pushes to main publish production. Fork PRs run checks without publishing. No Firebase deployment credential is needed by the publishing job. Catalog writes remain an explicit, targeted operator command rather than granting CI production catalog access.
 
-`PUBLIC_BASE_PATH` sets the build directory, including artwork, fonts, gallery, viewer, links and QR invitations. `VITE_PREVIEW_ID` separates Firestore histories; builds record the full source SHA, base and scope in `build.json`. New invitations use `?table=CODE`, with a static `tabletop/` directory for shared views, so ordinary refreshes return HTTP 200 without server rewrites. A generated `404.html` retains compatibility with old `/table/CODE` and `/tabletop/CODE` routes on Pages.
+`PUBLIC_BASE_PATH` sets the build directory, including artwork, fonts, gallery, viewer, links and QR invitations. `VITE_PREVIEW_ID` separates Firestore histories and remembered-table/pause state; builds record the full source SHA, base and scope in `build.json`. New invitations use `?table=CODE`, with a static `tabletop/` directory for shared views, so ordinary refreshes return HTTP 200 without server rewrites. A generated `404.html` retains compatibility with old `/table/CODE` and `/tabletop/CODE` routes on Pages.
 
 To review a Pages-style build locally:
 
