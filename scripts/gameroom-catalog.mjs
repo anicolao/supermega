@@ -1,7 +1,7 @@
 export const GAME_ROOM_ENTRY = Object.freeze({
   Title: "Super Mega Lucky Box",
-  WebURL: "https://supermega-anicolao.web.app/",
-  Icon: "https://supermega-anicolao.web.app/assets/gameroom/cover.webp",
+  WebURL: "https://anicolao.github.io/supermega/",
+  Icon: "https://anicolao.github.io/supermega/assets/gameroom/cover.webp",
   GameroomEnabled: "integrated",
 });
 const normalize = (value) =>

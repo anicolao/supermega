@@ -1,3 +1,4 @@
+import { appPath } from "../paths.ts";
 const flights = new Set<() => void>();
 
 export function cancelLightning() {
@@ -37,7 +38,7 @@ export function animateLightning(
   flights.add(cancel);
   for (let i = 0; i < amount; i++) {
     const bolt = document.createElement("img");
-    bolt.src = "/assets/generated/bolt.webp";
+    bolt.src = appPath("/assets/generated/bolt.webp");
     bolt.alt = "";
     bolt.className = "spent-lightning";
     layer.append(bolt);

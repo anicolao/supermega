@@ -1,21 +1,69 @@
-name: Source checks
-on: [push, pull_request]
+name: Verify and deploy
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: supermega-verify-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24.18.1
           cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm run test:rules
       - run: npm run build
+        env:
+          PUBLIC_BASE_PATH: ${{ github.event_name == 'pull_request' && format('/supermega/pr{0}/', github.event.pull_request.number) || '/supermega/' }}
+          VITE_PREVIEW_ID: ${{ github.event_name == 'pull_request' && format('pr{0}', github.event.pull_request.number) || 'main' }}
+          VITE_BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/upload-artifact@v4
         with:
-          name: playable-build
+          name: pages-build
           path: dist
+          include-hidden-files: true
+  deploy:
+    needs: check
+    # Only trusted same-repository branches publish under our Pages origin.
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: pages-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Publish exactly the artifact produced by the successful check job.
+      - uses: actions/download-artifact@v4
+        with:
+          name: pages-build
+          path: dist
+      - uses: peaceiris/actions-gh-pages@v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          destination_dir: ${{ github.event_name == 'pull_request' && format('pr{0}', github.event.pull_request.number) || '' }}
+          keep_files: true
+      - name: Link retained preview
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          OWNER: ${{ github.repository_owner }}
+        run: gh pr comment "$PR" --edit-last --create-if-none --body "Preview https://$OWNER.github.io/supermega/pr$PR/ · Gallery https://$OWNER.github.io/supermega/pr$PR/gallery/ · Review https://$OWNER.github.io/supermega/pr$PR/review/"
