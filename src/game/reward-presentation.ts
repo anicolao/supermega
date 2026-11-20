@@ -1,3 +1,4 @@
+import { basePath } from "../paths.ts";
 import { bonusStates, type State, type Player, type Box } from "./engine.ts";
 import { cardById } from "./catalog.ts";
 import { playSound } from "./sound.ts";
@@ -159,7 +160,7 @@ export class RewardPresentation {
     const token = document.createElement("div");
     token.className = "collected-reward";
     token.setAttribute("aria-hidden", "true");
-    token.innerHTML = `<img src="/assets/generated/${award.kind}.webp" alt="">`;
+    token.innerHTML = `<img src="${basePath}assets/generated/${award.kind}.webp" alt="">`;
     root.append(token);
     const position = (r: DOMRect, scale: number) =>
       `translate(${r.left + r.width / 2 - 23}px,${r.top + r.height / 2 - 23}px) scale(${scale})`;

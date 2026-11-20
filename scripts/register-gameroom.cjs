@@ -54,6 +54,17 @@ const { requireAuth } = require("firebase-tools/lib/requireAuth");
     throw Error(
       "Deploy the reviewed create/join adapter before enabling the shelf entry.",
     );
+  const deployed = await fetch(
+    new URL("build.json", GAME_ROOM_ENTRY.WebURL),
+  ).then((r) => r.json());
+  if (
+    deployed.scope !== "main" ||
+    deployed.base !== "/supermega/" ||
+    !/^[a-f0-9]{40}$/.test(deployed.sha)
+  )
+    throw Error(
+      "Publish a main-branch Pages build before switching the production shelf.",
+    );
   const cover = await fetch(GAME_ROOM_ENTRY.Icon);
   if (
     !cover.ok ||

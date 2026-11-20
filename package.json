@@ -14,8 +14,8 @@
     "emulators": "npx --yes firebase-tools@15.35.0 emulators:start --project demo-supermega --only auth,firestore",
     "art:cover": "node scripts/prepare-cover.mjs",
     "catalog:gameroom": "node scripts/register-gameroom.cjs",
-    "release:gameroom": "node scripts/release-gameroom.mjs",
-    "test:gameroom": "node scripts/test-gameroom.mjs"
+    "test:gameroom": "node scripts/test-gameroom.mjs",
+    "test:rules": "node scripts/test-rules.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@anicolao/e2e": "git+https://github.com/anicolao/e2e.git#20336938933d89799837d98534d560c946dbb1d7",
+    "@firebase/rules-unit-testing": "6.0.0",
     "@playwright/test": "^1.61.1",
     "@types/node": "^26.6.6",
     "@types/qrcode": "^1.5.6",
