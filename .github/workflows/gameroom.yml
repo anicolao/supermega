@@ -5,6 +5,9 @@ on:
     branches: [main]
 permissions:
   contents: read
+concurrency:
+  group: supermega-launch-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   launch:
     runs-on: ubuntu-latest
