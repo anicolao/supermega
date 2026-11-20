@@ -1,7 +1,7 @@
+import { initializeGameFirestore } from "./firestore.ts";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, connectAuthEmulator } from "firebase/auth";
 import {
-  initializeFirestore,
   connectFirestoreEmulator,
   doc,
   getDoc,
@@ -46,9 +46,7 @@ export function connect() {
         : config,
     );
     const auth = getAuth(app);
-    const db = initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
-    });
+    const db = initializeGameFirestore(app);
     if (emulator) {
       const host = import.meta.env.VITE_EMULATOR_HOST || location.hostname;
       connectAuthEmulator(

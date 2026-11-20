@@ -14,7 +14,7 @@ const server = spawn(
     String(port),
     "--strictPort",
   ],
-  { stdio: "ignore" },
+  { stdio: "ignore", env: { ...process.env, PUBLIC_BASE_PATH: "/" } },
 );
 let browser;
 try {

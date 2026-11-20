@@ -1,3 +1,4 @@
+import { basePath } from "../paths.ts";
 import type { Reward, RewardState, SymbolName } from './types';
 // Code-drawn shapes are limited to supporting UI and live ink marks.
 const paths: Record<'box'|'cross', string> = {
@@ -7,8 +8,8 @@ const paths: Record<'box'|'cross', string> = {
 export const names: Record<SymbolName, string> = {bolt:'Lightning', 'double-bolt':'Double lightning', moon:'Moon', star:'Star', wild:'Any number', box:'Lucky Box', cross:'Marked'};
 export function symbol(name: SymbolName, decorative = true) {
  const semantics=decorative?'aria-hidden="true"':`role="img" aria-label="${names[name]}"`;
- if(name==='double-bolt')return `<span class="symbol symbol-double-bolt generated-symbol" ${semantics}><img src="/assets/generated/bolt.webp" alt="" draggable="false"><img src="/assets/generated/bolt.webp" alt="" draggable="false"></span>`;
- if(name==='bolt'||name==='moon'||name==='star')return `<img class="symbol symbol-${name} generated-symbol" src="/assets/generated/${name}.webp" ${decorative?'alt="" aria-hidden="true"':`alt="${names[name]}"`} draggable="false">`;
+ if(name==='double-bolt')return `<span class="symbol symbol-double-bolt generated-symbol" ${semantics}><img src="${basePath}assets/generated/bolt.webp" alt="" draggable="false"><img src="${basePath}assets/generated/bolt.webp" alt="" draggable="false"></span>`;
+ if(name==='bolt'||name==='moon'||name==='star')return `<img class="symbol symbol-${name} generated-symbol" src="${basePath}assets/generated/${name}.webp" ${decorative?'alt="" aria-hidden="true"':`alt="${names[name]}"`} draggable="false">`;
  if(name==='wild')return `<span class="symbol symbol-wild printed-wild" ${semantics}>?</span>`;
  return `<svg class="symbol symbol-${name}" viewBox="0 0 64 64" ${semantics}>${paths[name]}</svg>`;
 }

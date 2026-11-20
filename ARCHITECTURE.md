@@ -1,4 +1,4 @@
-# PR1 architecture
+# Architecture
 
 ## Deterministic game authority
 
@@ -31,3 +31,7 @@ Personal screens have readable cards, contextual enlargement, and player tabs or
 ## Review workflow
 
 The shared e2e library owns the reusable screenshot/DOM viewer. Supermega's build supplies its title and an empty index. PR1 adds engine unit checks and ordinary browser smoke review, while game e2e stories, capture environments, baselines, and independent screenshot verification follow the user's first playtest. No empty suite is reported as passing.
+
+## Static delivery and WebKit transport
+
+GitHub Pages deploys checked build artifacts to `/supermega/` and retained `/supermega/prN/` previews. `PUBLIC_BASE_PATH` controls static URLs; the shared path helpers keep navigation, invitations, QR codes and live animation assets inside the deployment. New tables use query-string invitations at real static directories, and a 404 entry preserves older path-based links. Firebase remains the authentication and event-storage backend. Its initialization explicitly selects XHR rather than Fetch Streams in all browsers, with long-polling autodetection, matching Hanami. A pinned Nix shell supplies the local toolchain. Dedicated rules tests exercise rejected writes through the real Firestore emulator; gameplay screenshot validation remains deferred.

@@ -12,7 +12,8 @@ const root = process.cwd(),
   gameroom = resolve(process.env.GAMEROOM_PATH ?? "../gameroom");
 const firestore = "127.0.0.1:8797",
   auth = "127.0.0.1:9797",
-  game = "https://localhost:6127/",
+  gameBase = "/supermega/prtest/",
+  game = "https://localhost:6127" + gameBase,
   roomOrigin = "http://127.0.0.1:6129";
 if (
   process.env.FIRESTORE_EMULATOR_HOST !== firestore ||
@@ -87,6 +88,7 @@ const gameEnv = {
   VITE_FIREBASE_AUTH_EMULATOR_PORT: "9797",
   VITE_FIRESTORE_EMULATOR_PORT: "8797",
   VITE_PREVIEW_ID: "gameroom-test",
+  PUBLIC_BASE_PATH: gameBase,
 };
 const roomEnv = {
   ...process.env,
@@ -201,9 +203,11 @@ try {
     { key: await readFile(key), cert: await readFile(certificate) },
     async (req, res) => {
       try {
-        const requested = decodeURIComponent(
+        const pathname = decodeURIComponent(
           new URL(req.url, "https://localhost").pathname,
         );
+        if (!pathname.startsWith(gameBase)) { res.writeHead(404); res.end(); return; }
+        const requested = "/" + pathname.slice(gameBase.length);
         let path = resolve(distribution, "." + requested);
         if (!path.startsWith(distribution + "/") && path !== distribution)
           throw Error("Invalid path");
