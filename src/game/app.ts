@@ -1,3 +1,4 @@
+import { fitCards } from "./card-layout.ts";
 import { basePath, routePath, tablePath } from "../paths.ts";
 import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
@@ -88,6 +89,7 @@ const selections = new Map<string, string[]>(),
     string,
     { capacity: number; columns: number; size: number }
   >();
+let cardLayoutFrame = 0;
 let frontTab = "create",
   panelPage = 0,
   panel = "";
@@ -198,23 +200,7 @@ function boxes(p: Player, offered: boolean, comparison = false) {
     : visible[0]?.id;
   const selected = selections.get(p.id) ?? [];
   const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">↩</button>` : ""}</nav>`;
-  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-card-min="${comparison ? 150 : 260}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}${comparison ? "" : `<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div>`}</div>`)).join("")}</div></div>${
-    comparison
-      ? `<nav class="card-pages tray-pages comparison-pages" aria-label="${escape(p.name)}’s ${offered ? "new" : "existing"} cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous ${offered ? "new" : "existing"} cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next ${offered ? "new" : "existing"} cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : `<span>All ${cards.length} cards</span>`}</nav>`
-      : offered
-        ? `<nav class="card-pages" aria-label="${escape(p.name)}’s cards">${Array.from(
-            { length: pages },
-            (_, i) =>
-              `<button data-game="card-page" data-player="${layoutKey}" data-page="${i}" aria-pressed="${page === i}" aria-label="Card page ${i + 1}">${cards
-                .slice(i * layout.capacity, (i + 1) * layout.capacity)
-                .map(
-                  (box) =>
-                    `${art(box).serial}${selected.includes(box.id) ? " ✓" : ""}`,
-                )
-                .join(" · ")}</button>`,
-          ).join("")}</nav>`
-        : ""
-  }`;
+  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-fit-all="${offered || comparison}" data-offers="${offered}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : comparison ? `<button class="game-card tray-overview-card" data-action="inspect" data-card="${box.id}" aria-label="Enlarge Lucky Box ${art(box).serial} in your tray">${luckyCard(art(box), { ...cardView(box, p), interactive: false, inspectable: false, canUndo: false })}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>`;
 }
 function playerArea(p: Player) {
   const own = p.controller === uid,
@@ -343,34 +329,14 @@ function observeCards() {
         count = Number(element.dataset.cardCount),
         { width, height } = entry.contentRect;
       const actionSpace = Number(element.dataset.actionSpace ?? 0);
-      const minimum = Number(element.dataset.cardMin ?? 260);
-      const maxColumns = Math.max(1, Math.floor((width + 8) / (minimum + 8))),
-        maxRows = Math.max(
-          1,
-          Math.floor((height + 8) / (minimum + 8 + actionSpace)),
-        );
-      const capacity = Math.max(1, Math.min(count, maxColumns * maxRows));
-      const page = Math.min(
-        cardPages.get(element.dataset.layoutPlayer!) ?? 0,
-        Math.ceil(count / capacity) - 1,
-      );
-      const visible = Math.max(1, Math.min(capacity, count - page * capacity));
-      let best = { capacity, columns: 1, size: 0 };
-      for (
-        let columns = 1;
-        columns <= Math.min(maxColumns, visible);
-        columns++
-      ) {
-        const rows = Math.ceil(visible / columns),
-          size = Math.floor(
-            Math.min(
-              (width - 8 * (columns - 1)) / columns,
-              (height - 8 * (rows - 1)) / rows - actionSpace,
-              element.dataset.comparison === "true" ? 320 : 420,
-            ),
-          );
-        if (size > best.size) best = { capacity, columns, size };
-      }
+      const all = element.dataset.fitAll === "true";
+      const best = fitCards({
+        width, height, count, all, actionSpace,
+        page: cardPages.get(element.dataset.layoutPlayer!) ?? 0,
+        preferredColumns: element.dataset.offers === "true" && count === 5
+          ? (innerWidth <= innerHeight ? 2 : 3) : undefined,
+        maximum: element.dataset.comparison === "true" && element.dataset.offers !== "true" ? 150 : 320,
+      });
       const id = element.dataset.layoutPlayer!,
         previous = cardLayouts.get(id);
       if (
@@ -383,7 +349,11 @@ function observeCards() {
         changed = true;
       }
     }
-    if (changed) render();
+    if (changed && !cardLayoutFrame)
+      cardLayoutFrame = requestAnimationFrame(() => {
+        cardLayoutFrame = 0;
+        render();
+      });
   });
   app
     .querySelectorAll(".card-surface")
@@ -1045,7 +1015,13 @@ else if (initialTable) {
     .catch(notice);
 }
 
-window.addEventListener("resize", () => {
+function resizeGame() {
+  const viewport = window.visualViewport;
+  if (!viewport || viewport.scale === 1)
+    app.style.setProperty("--game-height", `${Math.floor(viewport?.height ?? innerHeight)}px`);
   if (utility.open) renderPanel();
   render();
-});
+}
+window.addEventListener("resize", resizeGame);
+window.visualViewport?.addEventListener("resize", resizeGame);
+resizeGame();

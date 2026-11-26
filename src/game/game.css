@@ -240,7 +240,7 @@ body:has(.game-front) {
   overflow: hidden;
 }
 #app {
-  height: 100dvh;
+  height: var(--game-height, 100dvh);
   display: flex;
   flex-direction: column;
 }
@@ -1881,4 +1881,59 @@ body:has(.game-page) .inspection-feedback {
   .round-score-card * {
     animation: none !important;
   }
+}
+
+/* Selection compares complete offers; only the whole card is a touch target. */
+.card-surface[data-fit-all="true"] .lucky-card .number-cell {
+  font-size: clamp(13px, 12cqw, 36px) !important;
+}
+.card-surface[data-fit-all="true"] .lucky-card .card-heading {
+  font-size: clamp(6px, 4cqw, 12px) !important;
+}
+.card-surface[data-fit-all="true"] .lucky-card .reward-slot .reward {
+  --bonus-size: clamp(12px, 14.3cqw, 50px);
+}
+.tray-overview-card {
+  padding: 0;
+  display: block;
+  min-width: 44px;
+  min-height: 44px;
+}
+.draft-comparison {
+  grid-template-columns: minmax(130px, .28fr) minmax(0, 1fr);
+}
+.draft-comparison h3 {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+@media (orientation: portrait) {
+  .draft-comparison {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(100px, .32fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+}
+/* Reclaim the side rail on tablets and medium-sized laptop windows. */
+@media (min-width: 651px) and (max-width: 1399px) and (min-height: 600px) {
+  .play-screen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 104px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .game-status {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 176px minmax(170px, 1fr);
+    gap: 12px;
+    text-align: left;
+  }
+  .game-status h1 { font-size: 28px; margin: 4px 0; }
+  .game-status .common-draw { width: 176px; height: 100px; }
+  .game-status .live-deck { width: 66px; top: 4px; left: 20px; }
+  .game-status .live-number { width: 72px; bottom: 2px; right: 12px; }
+  .game-status .draw-control { align-items: flex-end; text-align: right; gap: 0; }
+  .game-status .draw-control [data-auto-status] { min-height: 0; }
+  .game-status .countdown-burst { width: 100px; height: 100px; }
+  .game-status .countdown-burst strong { font-size: 58px; }
+  .game-status .countdown-caption { font-size: 9px; }
+  .game-status .countdown-star { width: 22px; height: 22px; }
 }
