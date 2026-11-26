@@ -134,5 +134,13 @@
     "height": 856,
     "alpha": true,
     "runtime": "/assets/generated/action-button.webp"
+  },
+  {
+    "id": "zoom",
+    "source": "art/source/zoom.png",
+    "width": 1254,
+    "height": 1254,
+    "alpha": true,
+    "runtime": "/assets/generated/zoom.webp"
   }
 ]

@@ -16,7 +16,7 @@ export class ScoreReveal {
       );
       if (button?.dataset.scoreControl === "pause") {
         this.paused = !this.paused;
-        button.textContent = this.paused ? "Resume ▶" : "Pause Ⅱ";
+        button.textContent = this.paused ? "Resume " : "Pause ";
       }
       if (button?.dataset.scoreControl === "skip") this.cancel();
     });
@@ -70,7 +70,7 @@ export class ScoreReveal {
             stage === "total" || stage === "extras" ? 2 : round <= 2 ? 0 : 1;
         this.dialog.classList.toggle("final-score", after.phase === "finished");
         if (!this.dialog.querySelector(".round-score-body"))
-          this.dialog.innerHTML = `<div class="round-score-heading"><h2 id="round-score-title"></h2><span></span></div><div class="round-score-body"><div class="round-score-card"></div><p class="round-score-caption" role="status" aria-live="polite"></p></div><div class="round-score-controls"><button data-score-control="pause">Pause Ⅱ</button><button data-score-control="skip">Skip animation →</button></div>`;
+          this.dialog.innerHTML = `<div class="round-score-heading"><h2 id="round-score-title"></h2><span></span></div><div class="round-score-body"><div class="round-score-card"></div><p class="round-score-caption" role="status" aria-live="polite"></p></div><div class="round-score-controls"><button data-score-control="pause">Pause </button><button data-score-control="skip">Skip animation </button></div>`;
         this.dialog.querySelector("#round-score-title")!.textContent =
           `Round ${round} results`;
         this.dialog.querySelector(".round-score-heading span")!.textContent =
@@ -85,7 +85,7 @@ export class ScoreReveal {
         const narrative = this.dialog.querySelector(".round-score-caption")!;
         if (narrative.textContent !== caption) narrative.textContent = caption;
         this.dialog.querySelector("[data-score-control=pause]")!.textContent =
-          this.paused ? "Resume ▶" : "Pause Ⅱ";
+          this.paused ? "Resume " : "Pause ";
         const row = this.dialog.querySelector(`[data-score-round="${round}"]`)!;
         row.classList.add("filling-round");
         const totalNode =
@@ -103,7 +103,7 @@ export class ScoreReveal {
         if (generation !== this.generation) return;
         data.completed[round - 1] = n;
         render(
-          `${n} completed ${n === 1 ? "box" : "boxes"} × ${value} = ${n * value} points`,
+          `${n} completed ${n === 1 ? "box" : "boxes"} x ${value} = ${n * value} points`,
           "boxes",
         );
         if (n) playSound("award");

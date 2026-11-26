@@ -42,9 +42,9 @@ The playable catalog contains 60 layouts, including blank reward positions, with
 
 Play stays within the viewport. Readable cards use explicit pages when needed; scores, help, and history open in separate paged views under More. Smaller screens use More → Player areas to switch seats.
 
-Ordinary choices apply immediately. Undo restores your own previous choice, including marks, pending/applied bonuses, lightning, moons, stars, and Ready. A new number or new-card deal closes the previous undo window because it reveals new information. The history itself remains append-only.
+Ordinary choices validate locally, persist into an ordered outbox, and apply immediately; subsequent taps do not wait for Firestore. Rejected choices roll back, while uncertain writes retain their IDs for explicit retry. The event log remains authoritative. Undo restores your own previous choice, including marks, pending/applied bonuses, lightning, moons, stars, and Ready. A new number or new-card deal closes the previous undo window because it reveals new information. The history itself remains append-only.
 
-Gentle synthesized plucks accompany local choices, with separate cues for marks, bonuses, Ready, reveals, scoring, and undo. Sound starts after user interaction; mute is persistent. Remote events and reloads do not replay sound.
+Gentle synthesized plucks accompany local choices, with separate cues for marks, bonuses, Ready, reveals, scoring, and undo. Sound starts after user interaction; mute is persistent. Remote events, acknowledgments, and reloads do not replay choice sounds.
 
 ## Firebase
 
@@ -112,3 +112,5 @@ The same renderers and generated layers serve the gallery, game, and contextual 
 Licensed [GPL-3.0-only](LICENSE). Original game by Phil Walker-Harding, published by Gamewright. See [NOTICE](NOTICE).
 
 [The iPad layout review](docs/review/ipad-layout.md) records representative WebKit captures and viewport measurements. Tablet play uses a compact top status strip; ordinary number-marking cards retain usable targets and explicit pages when needed.
+
+Card enlargement uses a generated magnifier and a continuous tray-to-inspector flight, followed by a sheet fade. Ready and Return reverse that sequence. Reduced motion skips the movement. Controls use artwork or plain labels rather than emoji.

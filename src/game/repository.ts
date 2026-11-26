@@ -1,3 +1,9 @@
+import {
+  ChoiceOutbox,
+  canonical,
+  type Pending,
+  type Publication,
+} from "./outbox.ts";
 import { initializeGameFirestore } from "./firestore.ts";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, connectAuthEmulator } from "firebase/auth";
@@ -14,7 +20,7 @@ import {
 } from "firebase/firestore";
 import config from "../firebase-config.json";
 import {
-  replay,
+  applyEvent,
   VERSION,
   type State,
   type Command,
@@ -22,16 +28,6 @@ import {
 } from "./engine.ts";
 const scope = import.meta.env.VITE_PREVIEW_ID || "main";
 let connection: Promise<{ db: Firestore; uid: string }> | undefined;
-const canonical = (value: unknown): string =>
-  JSON.stringify(value, (_, v) =>
-    v && typeof v === "object" && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.keys(v)
-            .sort()
-            .map((k) => [k, v[k]]),
-        )
-      : v,
-  );
 export function connect() {
   return (connection ??= (async () => {
     const emulator = import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
@@ -74,43 +70,42 @@ export function repository(
   db: Firestore,
   uid: string,
   room: string,
-  onEvents: (events: GameEvent[], state: State) => void,
+  onEvents: (events: GameEvent[], state: State, meta: Publication) => void,
   onError: (error: Error) => void,
 ) {
-  let events: GameEvent[] = [],
-    closed = false;
+  let closed = false;
   const root = doc(db, "previews", scope, "rooms", room),
     key = `supermega:pending:${scope}:${room}:${uid}`;
-  const update = (history: GameEvent[]) => {
-    const state = replay(history);
-    if (!closed && history.length >= events.length) {
-      events = history;
-      onEvents(history, state);
-    }
-  };
+  const outbox = new ChoiceOutbox(
+    uid,
+    {
+      read: () => localStorage.getItem(key),
+      write: (value) =>
+        value === null
+          ? localStorage.removeItem(key)
+          : localStorage.setItem(key, value),
+    },
+    send,
+    onEvents,
+  );
   const stop = onSnapshot(
     query(collection(root, "events"), orderBy("sequence")),
     { includeMetadataChanges: true },
     (snapshot) => {
+      if (closed) return;
       if (snapshot.metadata.hasPendingWrites || snapshot.metadata.fromCache)
         return;
       try {
-        update(snapshot.docs.map((d) => d.data() as GameEvent));
+        outbox.accept(snapshot.docs.map((d) => d.data() as GameEvent));
       } catch (error) {
         onError(error as Error);
       }
     },
     onError,
   );
-  type Pending = {
-    id: string;
-    command: Command;
-    epoch: string;
-    player: string | null;
-  };
   const epoch = (state: State) => `${state.phase}:${state.round}:${state.turn}`;
   async function send(pending: Pending) {
-    let committed: GameEvent[] | null = null;
+    let committed: GameEvent[] = [];
     for (let attempt = 0; ; attempt++) {
       let attemptedRevision = -1;
       try {
@@ -127,7 +122,6 @@ export function repository(
               canonical(saved.command) !== canonical(pending.command)
             )
               throw Error("This action ID is already in use.");
-            return null;
           }
           const head = await transaction.get(root),
             revision = head.data()?.revision ?? 0;
@@ -137,7 +131,8 @@ export function repository(
             throw Error(
               "This table uses an earlier storage format. Create a new table for this build.",
             );
-          const prefix = events.length <= revision ? [...events] : [];
+          const prefix =
+            outbox.history.length <= revision ? [...outbox.history] : [];
           const missing = await Promise.all(
             eventIds
               .slice(prefix.length)
@@ -147,7 +142,8 @@ export function repository(
               ...prefix,
               ...missing.map((d) => d.data() as GameEvent),
             ],
-            state = replay(history);
+            state = outbox.rebuild(history);
+          if (receipt.exists()) return history;
           if (epoch(state) !== pending.epoch)
             throw Error(
               "The table advanced. Choose again from the latest number.",
@@ -166,7 +162,7 @@ export function repository(
             sequence: revision + 1,
             command: pending.command,
           };
-          const next = replay([...history, event]);
+          const next = applyEvent(state, event);
           // Unique event IDs avoid collisions between independent players. The
           // head's append-only ID list gives every event a stable ordered position.
           const destination = doc(root, "events", event.id);
@@ -208,72 +204,17 @@ export function repository(
         if ((fresh.data()?.revision ?? 0) <= attemptedRevision) throw error;
       }
     }
-    localStorage.removeItem(key);
-    if (committed) update(committed);
+    return committed;
   }
   return {
     close() {
       closed = true;
       stop();
+      outbox.close();
     },
-    hasPending() {
-      return !!localStorage.getItem(key);
-    },
-    async append(command: Command) {
-      if (localStorage.getItem(key))
-        throw Error("Retry the pending action before choosing another.");
-      const state = replay(events),
-        pending: Pending = {
-          id: crypto.randomUUID(),
-          command,
-          epoch: epoch(state),
-          player:
-            "playerId" in command
-              ? canonical(state.players.find((p) => p.id === command.playerId))
-              : null,
-        };
-      replay([
-        ...events,
-        {
-          version: VERSION,
-          id: pending.id,
-          actor: uid,
-          sequence: events.length + 1,
-          command,
-        },
-      ]);
-      localStorage.setItem(key, JSON.stringify(pending));
-      try {
-        await send(pending);
-      } catch (error) {
-        if (
-          !(error as { code?: string }).code ||
-          ["permission-denied", "unauthenticated", "invalid-argument"].includes(
-            (error as { code: string }).code,
-          )
-        )
-          localStorage.removeItem(key);
-        throw error;
-      }
-    },
-    async retry() {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        try {
-          await send(JSON.parse(saved));
-        } catch (error) {
-          if (
-            !(error as { code?: string }).code ||
-            [
-              "permission-denied",
-              "unauthenticated",
-              "invalid-argument",
-            ].includes((error as { code: string }).code)
-          )
-            localStorage.removeItem(key);
-          throw error;
-        }
-      }
-    },
+    hasPending: () => outbox.hasPending(),
+    needsRetry: () => outbox.needsRetry(),
+    append: (command: Command) => outbox.append(command),
+    retry: () => outbox.retry(),
   };
 }

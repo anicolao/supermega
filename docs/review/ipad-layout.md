@@ -31,3 +31,13 @@ Physical iPad Safari review remains useful; these captures use WebKit at represe
 ## Later selection, portrait
 
 ![Existing tray and all three new offers](ipad-later-selection.png)
+
+## Zoom and immediate input
+
+The generated magnifier is shared by the game and gallery; no platform emoji controls remain. The live card grows from its exact originating instance, then the sheet and scrim fade in. Ready or Return fade the sheet out and shrink the card back into the tray. Reduced motion skips both effects. The enlarged card now uses the full inspector surface and scales its live numbers and rewards proportionally.
+
+Ad hoc WebKit review at 1024×768 measured a 320px tray card, an intermediate flight size around 504px, and a 568px enlarged card. With Firestore traffic deliberately held, a well mark painted in one frame (about 14ms in this run), Undo applied before the first write completed, and both decisions remained persisted in order. Releasing the traffic committed each decision once. Ready reversed the zoom before its network acknowledgment. Reduced motion and the absence of emoji in visible interface text were checked. Independent WebKit profiles also committed simultaneous number choices successfully. These observations are not physical-iPad performance guarantees or screenshot baselines.
+
+The outbox unit tests cover ordered rapid taps, dependent Undo, permanent rollback, retained retry IDs, restored queues and receipt deduplication, same-seat conflicts, acknowledgment/effect deduplication, confirmed-prefix reuse, ID collisions, and storage failures. The delay was acknowledgment-gated rendering, compounded by repeated history replay; no tap debounce or intentional well-mark timer was found.
+
+![Live enlarged production card](ipad-card-zoom.png)

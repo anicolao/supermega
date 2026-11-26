@@ -91,3 +91,7 @@
 .reward-slot:focus-visible{outline:3px solid #2f69bb;outline-offset:1px;border-radius:5px}
 @keyframes bonus-shimmer{0%,12%{background-position:125% 0}65%,100%{background-position:-30% 0}}
 @media(prefers-reduced-motion:reduce){.reward-pending::after{animation:none!important;display:none}.reward-pending::before{box-shadow:0 0 0 2px #edb73e55}}
+
+/* Generated magnifier, never a platform emoji. */
+.inspect-piece .zoom-icon { width: 30px; height: 30px; object-fit: contain; display: block; }
+.inspect-piece { display: grid; place-items: center; }

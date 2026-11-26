@@ -1,3 +1,4 @@
+import { immediateChoice } from "./outbox.ts";
 import { fitCards } from "./card-layout.ts";
 import { basePath, routePath, tablePath } from "../paths.ts";
 import "@fontsource/dm-sans/400.css";
@@ -74,7 +75,7 @@ let state: State | undefined,
   room = "",
   repo: ReturnType<typeof repositoryType> | undefined,
   busy = false,
-  submitting = false,
+  submitting = 0,
   creating = false,
   message = "",
   feedbackPlayer = "",
@@ -110,8 +111,9 @@ const dialog = document.createElement("dialog");
 dialog.id = "inspector";
 dialog.setAttribute("aria-labelledby", "inspection-title");
 dialog.innerHTML =
-  '<div class="inspector-top"><div><p class="eyebrow">YOUR BOX, UP CLOSE</p><h2 id="inspection-title"></h2></div><button class="outlined-button" data-game="close-inspector" data-action="close">Return to table ×</button></div><div id="inspection-art"></div><div id="inspection-feedback" class="inspection-feedback" role="status" aria-live="polite"></div><p class="inspection-note">Marks and bonuses stay connected to your table.</p>';
+  '<div class="inspector-top"><div><p class="eyebrow">YOUR BOX, UP CLOSE</p><h2 id="inspection-title"></h2></div><button class="outlined-button" data-game="close-inspector" data-action="close">Return to table</button></div><div id="inspection-art"></div><div id="inspection-feedback" class="inspection-feedback" role="status" aria-live="polite"></div><p class="inspection-note">Marks and bonuses stay connected to your table.</p>';
 document.body.append(dialog);
+dialog.addEventListener("close", cancelLightning);
 function findBox(id: string) {
   for (const p of state?.players ?? []) {
     const box = [...p.cards, ...p.offers].find((c) => c.id === id);
@@ -130,6 +132,7 @@ function cardView(box: Box, p: Player) {
       state?.phase === "playing" &&
       !p.ready &&
       !busy &&
+      !repo?.needsRetry() &&
       !awards.hasPlayer(p.id),
     inspectable: true,
     canUndo: false,
@@ -149,16 +152,16 @@ function feedback() {
 }
 const brand = `<a class="wordmark" href="${basePath}"><span class="brand-box">${symbol("box")}</span><span>SUPER MEGA<br><b>LUCKY BOX</b></span></a>`;
 function header() {
-  return `<header class="site-header game-header">${brand}<div class="game-header-actions">${room ? `<a href="${tablePath(room, !routePath().startsWith("/tabletop/"))}" class="table-link">${routePath().startsWith("/tabletop/") ? "Personal view" : "Tabletop view"}</a>` : ""}<button class="text-button" data-game="sound" aria-pressed="${soundEnabled()}" aria-label="${soundEnabled() ? "Mute" : "Enable"} sound">${soundEnabled() ? "♫" : "♫ Off"}</button><button class="text-button" data-game="panel" data-panel="menu">More</button></div></header>`;
+  return `<header class="site-header game-header">${brand}<div class="game-header-actions">${room ? `<a href="${tablePath(room, !routePath().startsWith("/tabletop/"))}" class="table-link">${routePath().startsWith("/tabletop/") ? "Personal view" : "Tabletop view"}</a>` : ""}<button class="text-button" data-game="sound" aria-pressed="${soundEnabled()}" aria-label="${soundEnabled() ? "Mute" : "Enable"} sound">${soundEnabled() ? "Sound" : "Sound Off"}</button><button class="text-button" data-game="panel" data-panel="menu">More</button></div></header>`;
 }
 function front() {
   const previous = localStorage.getItem(lastRoomKey);
-  return `${header()}<main class="game-front"><section><p class="eyebrow">A LITTLE LUCK. A LOVELY CHAIN REACTION.</p><h1>Let’s make<br>some <em>MEGA</em> luck.</h1><nav class="front-tabs"><button data-game="front-tab" data-tab="create" aria-pressed="${frontTab === "create"}">New table</button><button data-game="front-tab" data-tab="join" aria-pressed="${frontTab === "join"}">Join friends</button></nav><form id="${frontTab === "create" ? "create-game" : "join-game"}"><label>Your name<input name="name" maxlength="24" value="${escape(entry.name)}" required autocomplete="nickname"></label>${frontTab === "create" ? `<div class="front-options"><label>Play style<select name="mode"><option value="solo" ${entry.mode === "solo" ? "selected" : ""}>Just me</option><option value="web" ${entry.mode === "web" ? "selected" : ""}>Friends on their own screens</option><option value="tabletop" ${entry.mode === "tabletop" ? "selected" : ""}>Around one tabletop</option></select></label><label>Seats<select name="capacity" ${entry.mode === "solo" ? "disabled" : ""}>${[1, 2, 3, 4, 5, 6].map((n) => `<option ${n === (entry.mode === "solo" ? 1 : entry.capacity) ? "selected" : ""}>${n}</option>`).join("")}</select></label></div><button class="primary-link" ${busy ? "disabled" : ""}>${busy ? "Connecting…" : "Create a table ↗"}</button>` : `<label class="code-label">Table code<input name="code" placeholder="Eight-character code" value="${escape(entry.code)}" maxlength="8" autocapitalize="characters" required></label><button class="primary-link" ${busy ? "disabled" : ""}>Join table ↗</button>`}</form>${previous ? `<a class="text-link return-table" href="${tablePath(previous)}">Return to your last table ↗</a>` : ""}<button class="text-button front-help" data-game="panel" data-panel="help">How to play</button></section><aside class="front-pieces" aria-label="Lucky Box game pieces"><div class="front-back">${cardBack("lucky")}</div><div class="front-card">${luckyCard({ ...cardById(1), id: "welcome-box" }, { marked: [0, 1, 3, 6] })}</div><div class="front-number">${numberCard(7)}</div><div class="front-token">${token("bolt")}</div></aside></main>`;
+  return `${header()}<main class="game-front"><section><p class="eyebrow">A LITTLE LUCK. A LOVELY CHAIN REACTION.</p><h1>Let’s make<br>some <em>MEGA</em> luck.</h1><nav class="front-tabs"><button data-game="front-tab" data-tab="create" aria-pressed="${frontTab === "create"}">New table</button><button data-game="front-tab" data-tab="join" aria-pressed="${frontTab === "join"}">Join friends</button></nav><form id="${frontTab === "create" ? "create-game" : "join-game"}"><label>Your name<input name="name" maxlength="24" value="${escape(entry.name)}" required autocomplete="nickname"></label>${frontTab === "create" ? `<div class="front-options"><label>Play style<select name="mode"><option value="solo" ${entry.mode === "solo" ? "selected" : ""}>Just me</option><option value="web" ${entry.mode === "web" ? "selected" : ""}>Friends on their own screens</option><option value="tabletop" ${entry.mode === "tabletop" ? "selected" : ""}>Around one tabletop</option></select></label><label>Seats<select name="capacity" ${entry.mode === "solo" ? "disabled" : ""}>${[1, 2, 3, 4, 5, 6].map((n) => `<option ${n === (entry.mode === "solo" ? 1 : entry.capacity) ? "selected" : ""}>${n}</option>`).join("")}</select></label></div><button class="primary-link" ${busy ? "disabled" : ""}>${busy ? "Connecting…" : "Create a table "}</button>` : `<label class="code-label">Table code<input name="code" placeholder="Eight-character code" value="${escape(entry.code)}" maxlength="8" autocapitalize="characters" required></label><button class="primary-link" ${busy ? "disabled" : ""}>Join table</button>`}</form>${previous ? `<a class="text-link return-table" href="${tablePath(previous)}">Return to your last table</a>` : ""}<button class="text-button front-help" data-game="panel" data-panel="help">How to play</button></section><aside class="front-pieces" aria-label="Lucky Box game pieces"><div class="front-back">${cardBack("lucky")}</div><div class="front-card">${luckyCard({ ...cardById(1), id: "welcome-box" }, { marked: [0, 1, 3, 6] })}</div><div class="front-number">${numberCard(7)}</div><div class="front-token">${token("bolt")}</div></aside></main>`;
 }
 function lobby() {
   const host = state!.owner === uid,
     owned = state!.players.some((p) => p.controller === uid);
-  return `<section class="game-lobby"><div><p class="eyebrow">YOUR GATHERING</p><h1>Table <span>${room}</span></h1><p>One shared draw. Everybody plays.</p><div class="invite"><input readonly aria-label="Invitation link" value="${location.origin}${tablePath(room)}"><button class="outlined-button" data-game="copy">Copy link</button></div>${qr ? `<img class="invite-qr" src="${qr}" alt="Scan to join table ${room}">` : ""}<p class="quiet-copy">Scan or share this link to join on a phone, tablet, or laptop.</p></div><div class="lobby-seats"><h2>${state!.players.length} / ${state!.capacity} seats</h2>${state!.players.map((p) => `<div class="lobby-seat"><i style="background:${cardById(p.seat + 1).color}"></i><b>${escape(p.name)}</b><span>${p.controller === uid ? "Your seat" : "Connected"}</span></div>`).join("")}${!owned && state!.players.length < state!.capacity ? `<form id="join-seat"><label>Your name<input name="name" value="${escape(entry.name)}" maxlength="24" required></label><button class="primary-link" ${busy ? "disabled" : ""}>Take a seat</button></form>` : ""}${host ? `<button class="primary-link start-game" data-game="start" ${busy || creating ? "disabled" : ""}>Start game →</button>` : '<p class="quiet-copy">The table creator will start when everyone is here.</p>'}</div></section>`;
+  return `<section class="game-lobby"><div><p class="eyebrow">YOUR GATHERING</p><h1>Table <span>${room}</span></h1><p>One shared draw. Everybody plays.</p><div class="invite"><input readonly aria-label="Invitation link" value="${location.origin}${tablePath(room)}"><button class="outlined-button" data-game="copy">Copy link</button></div>${qr ? `<img class="invite-qr" src="${qr}" alt="Scan to join table ${room}">` : ""}<p class="quiet-copy">Scan or share this link to join on a phone, tablet, or laptop.</p></div><div class="lobby-seats"><h2>${state!.players.length} / ${state!.capacity} seats</h2>${state!.players.map((p) => `<div class="lobby-seat"><i style="background:${cardById(p.seat + 1).color}"></i><b>${escape(p.name)}</b><span>${p.controller === uid ? "Your seat" : "Connected"}</span></div>`).join("")}${!owned && state!.players.length < state!.capacity ? `<form id="join-seat"><label>Your name<input name="name" value="${escape(entry.name)}" maxlength="24" required></label><button class="primary-link" ${busy ? "disabled" : ""}>Take a seat</button></form>` : ""}${host ? `<button class="primary-link start-game" data-game="start" ${busy || creating ? "disabled" : ""}>Start game</button>` : '<p class="quiet-copy">The table creator will start when everyone is here.</p>'}</div></section>`;
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
@@ -166,7 +169,7 @@ function controls(p: Player) {
 }
 function trayActions(p: Player) {
   if (p.controller !== uid) return "";
-  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy ? "disabled" : ""}>Undo ↶</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy || awards.hasPlayer(p.id) ? "disabled" : ""}>${p.ready ? "Ready ✓" : "Ready →"}</button>` : ""}</div>`;
+  return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy || repo?.needsRetry() ? "disabled" : ""}>Undo</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy || repo?.needsRetry() || awards.hasPlayer(p.id) ? "disabled" : ""}>Ready</button>` : ""}</div>`;
 }
 function boxes(p: Player, offered: boolean, comparison = false) {
   const layoutKey = comparison
@@ -199,15 +202,15 @@ function boxes(p: Player, offered: boolean, comparison = false) {
     ? active
     : visible[0]?.id;
   const selected = selections.get(p.id) ?? [];
-  const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>›</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">↩</button>` : ""}</nav>`;
-  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-fit-all="${offered || comparison}" data-offers="${offered}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check">✓</span>' : ""}</button>` : comparison ? `<button class="game-card tray-overview-card" data-action="inspect" data-card="${box.id}" aria-label="Enlarge Lucky Box ${art(box).serial} in your tray">${luckyCard(art(box), { ...cardView(box, p), interactive: false, inspectable: false, canUndo: false })}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>`;
+  const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>Prev</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>Next</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">Back</button>` : ""}</nav>`;
+  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-fit-all="${offered || comparison}" data-offers="${offered}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy || repo?.needsRetry() ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 17l7 7L27 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : ""}</button>` : comparison ? `<button class="game-card tray-overview-card" data-action="inspect" data-card="${box.id}" aria-label="Enlarge Lucky Box ${art(box).serial} in your tray">${luckyCard(art(box), { ...cardView(box, p), interactive: false, inspectable: false, canUndo: false })}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>`;
 }
 function playerArea(p: Player) {
   const own = p.controller === uid,
     offered = state!.phase === "draft" && !!p.offers.length;
   const selected = selections.get(p.id) ?? [];
   const display = awards.displayed(p);
-  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-collecting="${awards.hasPlayer(p.id)}" aria-busy="${awards.hasPlayer(p.id)}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${routePath().startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">↻</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${display.bolts} lightning">${display.bolts}</b>${token("moon")}<b>${display.moons}</b>${symbol("star")}<b>${display.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? (p.cards.length ? `<div class="draft-comparison"><section class="draft-hand"><h3>Your tray · ${p.cards.length}</h3>${boxes(p, false, true)}</section><section class="draft-new"><h3>New cards</h3>${boxes(p, true, true)}</section></div>` : boxes(p, true)) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
+  return `<section class="player-zone ${rotations.has(p.id) ? "rotated-seat" : ""}" style="--seat-color:${cardById(p.seat + 1).color}" data-seat="${p.seat}" data-player-zone="${p.id}" data-collecting="${awards.hasPlayer(p.id)}" aria-busy="${awards.hasPlayer(p.id)}" data-piece-region><div class="seat-heading"><h2><i></i>${escape(p.name)}</h2>${routePath().startsWith("/tabletop/") ? `<button class="rotate-seat text-button" data-game="rotate" data-player="${p.id}" aria-label="Rotate ${escape(p.name)}’s seat">Rotate</button>` : ""}<div class="seat-resources">${token("bolt")}<b aria-label="${display.bolts} lightning">${display.bolts}</b>${token("moon")}<b>${display.moons}</b>${symbol("star")}<b>${display.stars[state!.round - 1]}</b></div></div>${offered ? `<div class="seat-instruction">${own ? (state!.round === 1 ? `Choose 3 · ${selected.length} selected` : "Choose one new card") : "Choosing their cards…"}</div>${own ? (p.cards.length ? `<div class="draft-comparison"><section class="draft-hand"><h3>Your tray · ${p.cards.length}</h3>${boxes(p, false, true)}</section><section class="draft-new"><h3>New cards</h3>${boxes(p, true, true)}</section></div>` : boxes(p, true)) : `<div class="private-offer">${cardBack("lucky")}</div>`}` : `${state!.phase === "playing" && own ? controls(p) : `<div class="draft-ready">${state!.phase === "draft" ? `Cards kept. The next draw is on its way.` : "Watching this seat"}</div>`}${boxes(p, false)}`}</section>`;
 }
 function describe(e: GameEvent) {
   const c = e.command,
@@ -247,14 +250,14 @@ function playing() {
   const number = state!.turn ? currentNumber(state!) : undefined;
   return `<div class="play-screen"><section class="game-status"><div class="draw-heading"><p class="eyebrow">ROUND ${state!.round} / 4 · ${state!.turn} / 9</p><h1>${state!.phase === "draft" ? "Pick your luck." : state!.phase === "finished" ? "Mega finish!" : `Lucky ${number}`}</h1></div><div class="common-draw"><div class="live-deck">${cardBack("number")}</div>${number ? `<div class="live-number">${numberCard(number)}</div>` : ""}<div class="countdown-burst" data-countdown hidden aria-hidden="true"><img class="countdown-well" src="${basePath}assets/generated/well.webp" alt=""><strong data-countdown-value>3</strong><span class="countdown-caption" data-countdown-caption>Next draw</span><i class="countdown-star first">${symbol("star")}</i><i class="countdown-star second">${symbol("star")}</i></div></div><div class="draw-control">${
     state!.phase !== "finished"
-      ? `<span data-auto-status></span>${state!.owner === uid ? `<button class="text-button" data-game="auto-pause" aria-pressed="${autoPaused}">${autoPaused || autoFailed ? "Resume draws ▶" : "Pause draws Ⅱ"}</button>` : ""}`
+      ? `<span data-auto-status></span>${state!.owner === uid ? `<button class="text-button" data-game="auto-pause" aria-pressed="${autoPaused}">${autoPaused || autoFailed ? "Resume draws " : "Pause draws "}</button>` : ""}`
       : `<p>${state!.players
           .filter((p) => state!.winners.includes(p.id))
           .map((p) => escape(p.name))
           .join(
             " & ",
-          )} wins!</p>${state!.owner === uid ? '<button class="primary-link" data-game="rematch">Play again →</button>' : ""}`
-  }</div></section><div class="play-workspace">${!table && state!.players.length > 1 && innerWidth >= 650 && innerHeight >= 700 ? `<nav class="seat-tabs" aria-label="Player areas">${state!.players.map((p) => `<button data-game="seat" data-player="${p.id}" aria-pressed="${p.id === selectedPlayer}">${escape(p.name)}${p.ready ? " ✓" : ""}</button>`).join("")}</nav>` : ""}${
+          )} wins!</p>${state!.owner === uid ? '<button class="primary-link" data-game="rematch">Play again</button>' : ""}`
+  }</div></section><div class="play-workspace">${!table && state!.players.length > 1 && innerWidth >= 650 && innerHeight >= 700 ? `<nav class="seat-tabs" aria-label="Player areas">${state!.players.map((p) => `<button data-game="seat" data-player="${p.id}" aria-pressed="${p.id === selectedPlayer}">${escape(p.name)}${p.ready ? " · Ready" : ""}</button>`).join("")}</nav>` : ""}${
     state!.phase === "finished"
       ? `<div class="results"><ol>${[...state!.players]
           .sort(
@@ -288,7 +291,7 @@ function renderPanel() {
   const helpPages = [
     [
       "Your Lucky Boxes",
-      "Keep 3 of your first 5 cards. Everyone plays the same drawn number. Tap any open square: matching bonuses apply automatically, and any needed lightning adjustment wraps 9 ↔ 1. Each lightning changes the number by one. Undo restores the mark and its cost.",
+      "Keep 3 of your first 5 cards. Everyone plays the same drawn number. Tap any open square: matching bonuses apply automatically, and any needed lightning adjustment wraps 9 to 1. Each lightning changes the number by one. Undo restores the mark and its cost.",
     ],
     [
       "Chain reactions",
@@ -311,14 +314,14 @@ function renderPanel() {
             score(state!, state!.players[Math.floor(panelPage / scoreParts)]),
           )
         : panel === "seats"
-          ? `<div class="utility-menu">${state!.players.map((p) => `<button data-game="seat" data-player="${p.id}" aria-pressed="${p.id === selectedPlayer}">${escape(p.name)}${p.controller === uid ? " · your seat" : ""}${p.ready ? " ✓" : ""}</button>`).join("")}</div>`
+          ? `<div class="utility-menu">${state!.players.map((p) => `<button data-game="seat" data-player="${p.id}" aria-pressed="${p.id === selectedPlayer}">${escape(p.name)}${p.controller === uid ? " · your seat" : ""}${p.ready ? " · Ready" : ""}</button>`).join("")}</div>`
           : panel === "log"
             ? `<ol class="event-log" start="${panelPage * 5 + 1}">${events
                 .slice(panelPage * 5, panelPage * 5 + 5)
                 .map((e) => `<li>${escape(describe(e))}</li>`)
                 .join("")}</ol>`
-            : `<div class="utility-menu"><button data-game="panel" data-panel="help">How to play</button>${state && state.phase !== "empty" ? `<button data-game="panel" data-panel="seats">Player areas</button><button data-game="panel" data-panel="scores">Scorecards</button><button data-game="panel" data-panel="log">Choices at this table</button><button data-game="copy">Copy invitation link</button>` : ""}${legacyReturnTo ? `<a href="${escape(legacyReturnTo)}" rel="noopener">Back to Game Room ↗</a>` : ""}<a href="${basePath}gallery/">Component gallery ↗</a><a href="${basePath}review/">Walkthroughs ↗</a></div>`;
-  utility.innerHTML = `<div class="utility-heading"><h2 id="utility-title">${panel === "help" ? "How to play" : panel === "scores" ? "Scorecards" : panel === "log" ? "Choices at this table" : panel === "seats" ? "Player areas" : "At the table"}</h2><button class="outlined-button" data-game="close-panel">Close ×</button></div><div class="utility-content ${panel === "scores" ? `utility-score ${scoreParts > 1 ? `score-part score-part-${panelPage % scoreParts}` : ""}` : ""}">${content}</div>${pages > 1 ? `<nav class="utility-pages"><button data-game="panel-page" data-delta="-1" ${panelPage === 0 ? "disabled" : ""}>← Previous</button><span>${panelPage + 1} / ${pages}</span><button data-game="panel-page" data-delta="1" ${panelPage === pages - 1 ? "disabled" : ""}>Next →</button></nav>` : ""}`;
+            : `<div class="utility-menu"><button data-game="panel" data-panel="help">How to play</button>${state && state.phase !== "empty" ? `<button data-game="panel" data-panel="seats">Player areas</button><button data-game="panel" data-panel="scores">Scorecards</button><button data-game="panel" data-panel="log">Choices at this table</button><button data-game="copy">Copy invitation link</button>` : ""}${legacyReturnTo ? `<a href="${escape(legacyReturnTo)}" rel="noopener">Back to Game Room </a>` : ""}<a href="${basePath}gallery/">Component gallery</a><a href="${basePath}review/">Walkthroughs</a></div>`;
+  utility.innerHTML = `<div class="utility-heading"><h2 id="utility-title">${panel === "help" ? "How to play" : panel === "scores" ? "Scorecards" : panel === "log" ? "Choices at this table" : panel === "seats" ? "Player areas" : "At the table"}</h2><button class="outlined-button" data-game="close-panel">Close x</button></div><div class="utility-content ${panel === "scores" ? `utility-score ${scoreParts > 1 ? `score-part score-part-${panelPage % scoreParts}` : ""}` : ""}">${content}</div>${pages > 1 ? `<nav class="utility-pages"><button data-game="panel-page" data-delta="-1" ${panelPage === 0 ? "disabled" : ""}>Previous</button><span>${panelPage + 1} / ${pages}</span><button data-game="panel-page" data-delta="1" ${panelPage === pages - 1 ? "disabled" : ""}>Next</button></nav>` : ""}`;
 }
 function observeCards() {
   layoutObserver?.disconnect();
@@ -363,6 +366,7 @@ function updateAuto() {
   const eligible = !!state && canAdvance(state) && !autoFailed;
   if (
     !eligible ||
+    repo?.hasPending() ||
     autoPaused ||
     busy ||
     utility.open ||
@@ -382,6 +386,10 @@ function updateAuto() {
       ? "Draw paused. Resume to retry."
       : autoPaused || utility.open || inspector.isOpen
         ? "Draw paused for review"
+        : repo?.needsRetry()
+          ? "Choices waiting to retry"
+          : repo?.hasPending()
+            ? "Saving choices"
         : eligible && state!.owner !== uid
           ? "Waiting for the table creator"
           : eligible
@@ -461,7 +469,7 @@ function render() {
       }
     : undefined;
   app.innerHTML = room
-    ? `${header()}<main class="game-page ${routePath().startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : gameRoomLaunch?.mode === "join" ? "Waiting for your friends…" : "Opening your table…"}</h1><p>${gameRoomLaunch?.mode === "join" ? "Your seat will appear as soon as the table creator arrives." : "The latest choices are being loaded from Firebase."}</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message && !feedbackPlayer ? "has-message" : ""}" role="status" aria-live="polite">${feedbackPlayer ? "" : escape(message)}${repo?.hasPending() ? '<button data-game="retry" class="outlined-button">Retry pending choice</button>' : ""}</div></main>`
+    ? `${header()}<main class="game-page ${routePath().startsWith("/tabletop/") ? "wide-tabletop" : ""}" data-room="${room}" data-revision="${state?.revision ?? 0}">${!state || state.phase === "empty" ? `<div class="connection-state"><h1>${message.startsWith("No table") ? "Table not found" : gameRoomLaunch?.mode === "join" ? "Waiting for your friends…" : "Opening your table…"}</h1><p>${gameRoomLaunch?.mode === "join" ? "Your seat will appear as soon as the table creator arrives." : "The latest choices are being loaded from Firebase."}</p></div>` : state.phase === "lobby" ? lobby() : playing()}<div class="game-notice ${message && !feedbackPlayer ? "has-message" : ""}" role="status" aria-live="polite">${feedbackPlayer ? "" : escape(message)}${repo?.needsRetry() ? '<button data-game="retry" class="outlined-button">Retry pending choices</button>' : ""}</div></main>`
     : `${front()}${message ? `<div class="game-notice has-message" role="status">${escape(message)}</div>` : ""}`;
   document.body.classList.toggle(
     "is-tabletop",
@@ -510,13 +518,15 @@ async function attach(code: string) {
       connection.db,
       uid,
       room,
-      (next, s) => {
+      (next, s, publication) => {
         const before = state;
+        if (publication.rollback) { awards.cancel(); cancelLightning(); }
         const live = before && before.phase !== "empty";
         const freshEvents = next.slice(events.length);
+        const newPresentation = freshEvents.filter(e => !publication.acknowledged?.includes(e.id));
         if (
           live &&
-          freshEvents.some(
+          newPresentation.some(
             (e) => e.command.type === "undo" || e.command.type === "rematch",
           )
         ) {
@@ -535,9 +545,9 @@ async function attach(code: string) {
           (state.round !== s.round || state.turn !== s.turn);
         if (state?.phase !== s.phase || state?.round !== s.round)
           cardPages.clear();
-        for (const event of next.slice(events.length)) {
-          const command = event.command;
+        for (const command of [...newPresentation.map(e => e.command), ...(publication.localChoice ? [publication.localChoice] : [])]) {
           if ("playerId" in command) {
+            if (command.type === "choose") selections.delete(command.playerId);
             const card =
               command.type === "mark"
                 ? command.cardId
@@ -566,11 +576,25 @@ async function attach(code: string) {
           )
             activeBonus = undefined;
         }
-        if (live && !roundScored) awards.capture(before, s);
+        if (live && !roundScored && !publication.rollback) awards.capture(before, s);
+        const localChoice = publication.localChoice;
+        if (localChoice?.type === "mark" || (localChoice?.type === "bonus" && localChoice.targetCard !== undefined && localChoice.cell !== undefined)) {
+          const id = localChoice.type === "mark" ? localChoice.cardId : localChoice.targetCard!;
+          const cell = localChoice.cell!;
+          const cost = localChoice.type === "mark" ? Math.abs(localChoice.delta) : 0;
+          const box = findBox(id).box;
+          activeBonus = undefined;
+          message = `Marked ${cardById(box.template).numbers[cell]}${localChoice.type === "bonus" ? " · bonus applied" : cost ? ` · spent ${cost} lightning` : ""}.`;
+        }
         render();
+        if (publication.localChoice) {
+          const choice = publication.localChoice;
+          if (choice.type !== "bonus" || choice.targetCard !== undefined)
+            playSound(sounds[choice.type] ?? "select");
+          if (choice.type === "finish" && inspector.isOpen) void inspector.close();
+        }
         if (roundScored) {
-          inspector.close();
-          void scoring.show(before, s, uid);
+          void inspector.close().then(() => scoring.show(before, s, uid));
         }
         if (drawChanged)
           requestAnimationFrame(() => {
@@ -590,6 +614,7 @@ async function attach(code: string) {
     );
   });
 }
+const soundedErrors = new WeakSet<object>();
 const sounds: Record<string, SoundKind> = {
   mark: "mark",
   bonus: "bonus",
@@ -605,23 +630,26 @@ const sounds: Record<string, SoundKind> = {
 };
 async function send(command: Command) {
   if (busy) return false;
-  submitting = true;
-  busy = true;
+  const immediate = immediateChoice(command);
+  submitting++;
+  busy = !immediate;
   feedbackPlayer = "playerId" in command ? command.playerId : "";
   message = "";
   render();
   try {
     await repo!.append(command);
-    if (command.type !== "bonus" || command.targetCard !== undefined)
-      playSound(sounds[command.type] ?? "select");
+    if (!immediate) playSound(sounds[command.type] ?? "select");
     return true;
   } catch (error) {
     message = (error as Error).message;
-    playSound("error");
+    if (typeof error !== "object" || error === null || !soundedErrors.has(error)) {
+      playSound("error");
+      if (typeof error === "object" && error !== null) soundedErrors.add(error);
+    }
     return false;
   } finally {
-    submitting = false;
-    busy = false;
+    submitting--;
+    if (!submitting) busy = false;
     autoDeadline = 0;
     render();
     queueMicrotask(() => void processGameRoomLaunch());
@@ -821,7 +849,7 @@ document.addEventListener("click", async (e) => {
       if (index >= 0) list.splice(index, 1);
       else list.push(button.dataset.card!);
       selections.set(id, list);
-      playSound("select");
+      if (list.length !== (state!.round === 1 ? 3 : 1)) playSound("select");
       if (list.length === (state!.round === 1 ? 3 : 1)) {
         if (await send({ type: "choose", playerId: id, cards: list }))
           selections.delete(id);
@@ -899,22 +927,11 @@ document.addEventListener("click", async (e) => {
           `[data-player-zone="${p.id}"] .seat-resources .token-bolt`,
         )
         ?.getBoundingClientRect();
-      if (await send(command)) {
-        activeBonus = undefined;
-        message = `Marked ${cardById(box.template).numbers[cell]}${command.type === "bonus" ? " · bonus applied" : cost ? ` · spent ${cost} lightning` : ""}.`;
-        render();
-        const root = dialog.open ? dialog : app;
-        const target = root.querySelector<HTMLElement>(
-          `[data-card="${box.id}"][data-cell="${cell}"]`,
-        );
-        if (cost && origin && target)
-          animateLightning(
-            origin,
-            target,
-            cost,
-            dialog.open ? dialog : document.body,
-          );
-      }
+      const sent = send(command);
+      const root = dialog.open ? dialog : app;
+      const target = root.querySelector<HTMLElement>(`[data-card="${box.id}"][data-cell="${cell}"]`);
+      if (cost && origin && target?.classList.contains("is-marked")) animateLightning(origin, target, cost, dialog.open ? dialog : document.body);
+      await sent;
       return;
     }
   } catch (error) {
@@ -1015,8 +1032,13 @@ else if (initialTable) {
     .catch(notice);
 }
 
+let viewportSnapshot = "";
 function resizeGame() {
   const viewport = window.visualViewport;
+  if (viewport && viewport.scale !== 1) return;
+  const snapshot = `${innerWidth}:${innerHeight}:${Math.floor(viewport?.height ?? innerHeight)}`;
+  if (snapshot === viewportSnapshot) return;
+  viewportSnapshot = snapshot;
   if (!viewport || viewport.scale === 1)
     app.style.setProperty("--game-height", `${Math.floor(viewport?.height ?? innerHeight)}px`);
   if (utility.open) renderPanel();

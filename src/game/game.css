@@ -1614,7 +1614,7 @@ body:has(.game-page) .inspection-feedback {
   border: 0;
   background: none;
   border-radius: 8px;
-  font-size: 26px;
+  font-size: 12px;
   color: #263d24;
 }
 .card-action-dock .tray-pages button::before {
@@ -1937,3 +1937,21 @@ body:has(.game-page) .inspection-feedback {
   .game-status .countdown-caption { font-size: 9px; }
   .game-status .countdown-star { width: 22px; height: 22px; }
 }
+.offer-check {
+  width: 28px;
+  height: 28px;
+  left: auto;
+  right: 6px;
+  top: 6px;
+  bottom: auto;
+  padding: 2px;
+  border-radius: 50%;
+}
+.offer-check svg { width: 20px; height: 20px; }
+.rotate-seat { font-size: 11px; }
+/* Use the full inspector surface, with the same proportional live information. */
+body:has(.game-page) #inspection-art { width: 100%; margin: 0; }
+body:has(.game-page) #inspection-art .number-cell { font-size: clamp(26px, 12cqw, 68px) !important; }
+body:has(.game-page) #inspection-art .card-heading { font-size: clamp(10px, 3.4cqw, 24px) !important; }
+body:has(.game-page) #inspection-art .reward-slot .reward { --bonus-size: clamp(34px, 14.3cqw, 90px); }
+#inspector[data-zoom="closing"] .lightning-flight-layer { display: none; }
