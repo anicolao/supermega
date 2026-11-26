@@ -40,7 +40,7 @@ Completed cards score 15, 12, 10, and 8 by round. The game implements per-round 
 
 The playable catalog contains 60 layouts, including blank reward positions, with numeric component facts transcribed from BrettspielWelt's published implementation and its reward atlas. See [deck-source.json](src/game/deck-source.json) for provenance and the data checksum. No third-party artwork, sound, or implementation code was copied. The gallery's original six art fixtures remain separate from game data.
 
-Play stays within the viewport. Readable cards use explicit pages when needed; scores, help, and history open in separate paged views under More. Smaller screens use More → Player areas to switch seats.
+Play stays within the viewport. Readable cards use explicit pages when needed; scores, help, and history open in separate paged views in the logo menu. Smaller screens use the logo menu, then Player areas to switch seats.
 
 Ordinary choices validate locally, persist into an ordered outbox, and apply immediately; subsequent taps do not wait for Firestore. Rejected choices roll back, while uncertain writes retain their IDs for explicit retry. The event log remains authoritative. Undo restores your own previous choice, including marks, pending/applied bonuses, lightning, moons, stars, and Ready. A new number or new-card deal closes the previous undo window because it reveals new information. The history itself remains append-only.
 
@@ -114,3 +114,5 @@ Licensed [GPL-3.0-only](LICENSE). Original game by Phil Walker-Harding, publishe
 [The iPad layout review](docs/review/ipad-layout.md) records representative WebKit captures and viewport measurements. Tablet play uses a compact top status strip; ordinary number-marking cards retain usable targets and explicit pages when needed.
 
 Card enlargement uses a generated magnifier and a continuous tray-to-inspector flight, followed by a sheet fade. Ready and Return reverse that sequence. Reduced motion skips the movement. Controls use artwork or plain labels rather than emoji.
+
+Global game controls live in the menu beneath the upper-left logo; there is no full-width game header. View switching, sound, help, scores, history, invitations and pacing are available there. Ready and Undo remain beside the active card.

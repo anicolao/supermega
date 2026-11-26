@@ -8,13 +8,13 @@ Ad hoc review used the production UI, Playwright 1.61.1 WebKit, and isolated Aut
 
 | Viewport | Opening offers | Card size | Document scroll |
 | --- | --- | --- | --- |
-| 768 × 1024 | All 5, two columns | 249px | None |
-| 1024 × 768 | All 5, three columns | 250px | None |
-| 1024 × 650 | All 5, three columns | 191px | None |
-| 834 × 1100 | All 5, two columns | 274px | None |
-| 1194 × 734 | All 5, three columns | 233px | None |
+| 768 × 1024 | All 5, two columns | 266px | None |
+| 1024 × 768 | All 5, three columns | 276px | None |
+| 1024 × 650 | All 5, three columns | 217px | None |
+| 834 × 1100 | All 5, two columns | 292px | None |
+| 1194 × 734 | All 5, three columns | 259px | None |
 | 390 × 844 | All 5, two columns | 177px | None |
-| 1180 × 820 | All 5, three columns | 276px | None |
+| 1180 × 820 | All 5, three columns | 302px | None |
 
 All offer bounds were inside the viewport. Selecting two cards, rotating, and selecting the third preserved the selected identities and committed normally. Play was reviewed at 768×1024, 1024×768, and 1024×650; all three cards fitted and number targets measured at least 44px high. Later selection showed all three offers and all existing cards at those iPad sizes and 390×844. Touching an existing tray card opened the production inspector. Layout unit tests also cover six-card overview capacity and number-marking pagination.
 
@@ -41,3 +41,11 @@ Ad hoc WebKit review at 1024×768 measured a 320px tray card, an intermediate fl
 The outbox unit tests cover ordered rapid taps, dependent Undo, permanent rollback, retained retry IDs, restored queues and receipt deduplication, same-seat conflicts, acknowledgment/effect deduplication, confirmed-prefix reuse, ID collisions, and storage failures. The delay was acknowledgment-gated rendering, compounded by repeated history replay; no tap debounce or intentional well-mark timer was found.
 
 ![Live enlarged production card](ipad-card-zoom.png)
+
+## Logo menu instead of a header
+
+The full-width game header is removed. A 44px logo/menu control sits at the upper left above the card area, and opens the global controls directly beneath it. The menu includes view switching, sound, help, player areas, scores, history, invitation copying and draw pacing. Ready and Undo remain with the active card. Opening the menu suspends the countdown; selecting Pause/Resume closes it. Escape and outside clicks dismiss it.
+
+WebKit review checked the complete menu and all five offers at 768×1024, 1024×768, 1024×650, 390×844, 320×568, 844×390, 568×320, and 1920×1080. The menu uses three columns in short landscape windows so its controls remain inside the viewport. Sound, Escape dismissal, paged help, and draw pacing were exercised.
+
+![Controls below the upper-left logo](ipad-logo-menu.png)
