@@ -116,3 +116,5 @@ Licensed [GPL-3.0-only](LICENSE). Original game by Phil Walker-Harding, publishe
 Card enlargement uses a generated magnifier and a continuous tray-to-inspector flight, followed by a sheet fade. Ready and Return reverse that sequence. Reduced motion skips the movement. Controls use artwork or plain labels rather than emoji.
 
 Global game controls live in the menu beneath the upper-left logo; there is no full-width game header. View switching, sound, help, scores, history, invitations and pacing are available there. Ready and Undo remain beside the active card.
+
+On phones and short landscape screens, the entire tray fits without card paging. Tap any card (or its magnifier) to animate it into the shared interactive zoom view; Ready and Undo stay with the enlarged card. Larger screens retain direct number marking.

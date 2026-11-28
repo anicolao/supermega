@@ -49,3 +49,15 @@ The full-width game header is removed. A 44px logo/menu control sits at the uppe
 WebKit review checked the complete menu and all five offers at 768×1024, 1024×768, 1024×650, 390×844, 320×568, 844×390, 568×320, and 1920×1080. The menu uses three columns in short landscape windows so its controls remain inside the viewport. Sound, Escape dismissal, paged help, and draw pacing were exercised.
 
 ![Controls below the upper-left logo](ipad-logo-menu.png)
+
+## Phone tray without paging
+
+Phone and short landscape screens now fit every tray card into a single overview. Each whole card, including its generated magnifier cue, opens the existing animated inspector. Number choices, automatic bonus/lightning consumption, Undo and Ready use the live enlarged card. There are no phone tray page controls or small overview wells to hit. Ready shrinks the card back into its tray position. Tablet and desktop marking trays retain direct well interaction.
+
+Ad hoc WebKit touch review checked three-card and six-card trays at 390×844, 320×568, 844×390 and 568×320. Every card remained visible without document scrolling, and enlarged wells measured at least 44px high. Short landscape inspectors place the card and controls side by side. Mark, Undo, Ready and rotation between phone and tablet layouts were exercised with isolated Auth/Firestore emulators. These review captures are not screenshot baselines.
+
+![All six phone cards](phone-tray.png)
+
+![Interactive phone zoom](phone-zoom.png)
+
+![Short landscape zoom](phone-landscape-zoom.png)

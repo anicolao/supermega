@@ -62,3 +62,14 @@ test("marking trays reserve contextual actions and paginate before shrinking iPa
     assert.ok(last.size <= 320);
   }
 });
+
+test("phone overviews fit the entire tray with whole-card zoom targets", () => {
+  for (const [width, height] of [[370, 590], [300, 320], [640, 220], [370, 150]]) {
+    for (const count of [3, 4, 5, 6]) {
+      const layout = fitCards({ width, height, count, all: true });
+      assert.equal(layout.capacity, count);
+      assert.ok(layout.size >= 44);
+      fits(width, height, count, layout);
+    }
+  }
+});

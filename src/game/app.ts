@@ -175,13 +175,17 @@ function lobby() {
 }
 function controls(p: Player) {
   const active = activeBonus?.playerId === p.id ? activeBonus : undefined;
-  return `<div class="player-controls"><div class="choice-guidance" role="status" aria-live="polite">${awards.message(p.id) ? escape(awards.message(p.id)) : active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap a matching square to use a bonus." : p.usedDraw ? "Number marked. Commit when you’re ready." : "Tap a number. Lightning spends automatically."}</div></div>`;
+  return `<div class="player-controls"><div class="choice-guidance" role="status" aria-live="polite">${awards.message(p.id) ? escape(awards.message(p.id)) : active ? `${rewardLabel(cardById(findBox(active.cardId).box.template).rewards[active.bonus])}: tap a square. <button class="text-button" data-game="cancel-bonus">Cancel</button>` : feedbackPlayer === p.id && message ? escape(message) : p.ready ? "Ready! You can still undo before the draw." : pendingBonuses(p).length ? "Tap a matching square to use a bonus." : p.usedDraw ? (phoneTray() ? "Zoom a card to undo or get ready." : "Number marked. Commit when you’re ready.") : phoneTray() ? "Tap a card to zoom and play." : "Tap a number. Lightning spends automatically."}</div></div>`;
 }
 function trayActions(p: Player) {
   if (p.controller !== uid) return "";
   return `<div class="ready-controls" aria-label="${escape(p.name)}’s tray actions"><button class="game-action" data-game="undo" data-player="${p.id}" ${!state!.undo[p.id]?.length || busy || repo?.needsRetry() ? "disabled" : ""}>Undo</button>${state!.phase === "playing" ? `<button class="game-action ready-button" data-game="finish" data-player="${p.id}" ${!canFinish(state!, p) || busy || repo?.needsRetry() || awards.hasPlayer(p.id) ? "disabled" : ""}>Ready</button>` : ""}</div>`;
 }
+function phoneTray() {
+  return matchMedia("(max-width: 650px), (max-height: 599px)").matches;
+}
 function boxes(p: Player, offered: boolean, comparison = false) {
+  const overview = !offered && !comparison && phoneTray();
   const layoutKey = comparison
     ? `${p.id}:${offered ? "offers" : "hand"}`
     : p.id;
@@ -191,19 +195,20 @@ function boxes(p: Player, offered: boolean, comparison = false) {
     columns: 1,
     size: 260,
   };
-  const pages = Math.max(1, Math.ceil(cards.length / layout.capacity));
+  const capacity = overview ? Math.max(1, cards.length) : layout.capacity;
+  const pages = Math.max(1, Math.ceil(cards.length / capacity));
   const preferredPage = Math.max(
     0,
     Math.floor(
       cards.findIndex((box) => box.id === lastCards.get(p.id)) /
-        layout.capacity,
+        capacity,
     ),
   );
   const page = Math.min(cardPages.get(layoutKey) ?? preferredPage, pages - 1);
   cardPages.set(layoutKey, page);
   const visible = cards.slice(
-    page * layout.capacity,
-    (page + 1) * layout.capacity,
+    page * capacity,
+    (page + 1) * capacity,
   );
   const last =
     activeBonus?.playerId === p.id ? activeBonus.cardId : lastCards.get(p.id);
@@ -213,7 +218,7 @@ function boxes(p: Player, offered: boolean, comparison = false) {
     : visible[0]?.id;
   const selected = selections.get(p.id) ?? [];
   const pager = `<nav class="card-pages tray-pages" aria-label="${escape(p.name)}’s cards">${pages > 1 ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${page - 1}" aria-label="Previous cards" ${page === 0 ? "disabled" : ""}>Prev</button><span>${page + 1}/${pages}</span><button data-game="card-page" data-player="${layoutKey}" data-page="${page + 1}" aria-label="Next cards" ${page === pages - 1 ? "disabled" : ""}>Next</button>` : ""}${anchor !== active ? `<button data-game="card-page" data-player="${layoutKey}" data-page="${Math.floor(cards.findIndex((box) => box.id === active) / layout.capacity)}" aria-label="Return to active card">Back</button>` : ""}</nav>`;
-  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison ? 0 : 44}" data-fit-all="${offered || comparison}" data-offers="${offered}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy || repo?.needsRetry() ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 17l7 7L27 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : ""}</button>` : comparison ? `<button class="game-card tray-overview-card" data-action="inspect" data-card="${box.id}" aria-label="Enlarge Lucky Box ${art(box).serial} in your tray">${luckyCard(art(box), { ...cardView(box, p), interactive: false, inspectable: false, canUndo: false })}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>`;
+  return `<div class="card-surface" data-layout-player="${layoutKey}" data-card-count="${cards.length}" data-action-space="${offered || comparison || overview ? 0 : 44}" data-fit-all="${offered || comparison || overview}" data-phone-overview="${overview}" data-offers="${offered}" data-comparison="${comparison}"><div class="game-boxes ${offered ? "offers" : ""}" style="--card-size:${layout.size}px;--card-columns:${layout.columns}">${visible.map((box) => (offered ? `<button class="offer-piece ${selected.includes(box.id) ? "chosen" : ""}" data-game="choose-card" data-player="${p.id}" data-card="${box.id}" aria-label="${selected.includes(box.id) ? "Deselect" : "Select"} Lucky Box ${art(box).serial}" aria-pressed="${selected.includes(box.id)}" ${busy || repo?.needsRetry() ? "disabled" : ""}>${luckyCard(art(box))}${selected.includes(box.id) ? '<span class="offer-check" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 17l7 7L27 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : ""}</button>` : comparison || overview ? `<button class="game-card tray-overview-card" data-action="inspect" data-card="${box.id}" aria-label="Enlarge Lucky Box ${art(box).serial} in your tray">${luckyCard(art(box), { ...cardView(box, p), interactive: false, inspectable: false, canUndo: false })}${overview ? `<img class="tray-zoom-cue" src="${basePath}assets/generated/zoom.webp" alt="">` : ""}</button>` : `<div class="game-card" data-action-card="${box.id}">${luckyCard(art(box), cardView(box, p))}<div class="card-action-dock">${box.id === anchor ? `${pager}${box.id === active ? trayActions(p) : ""}` : ""}</div></div>`)).join("")}</div></div>`;
 }
 function playerArea(p: Player) {
   const own = p.controller === uid,

@@ -1947,3 +1947,29 @@ body:has(.game-page) #inspection-art .reward-slot .reward { --bonus-size: clamp(
 @media (max-height: 420px) and (min-width: 540px) {
   .table-controls { width: min(520px, calc(100vw - 16px)); grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Phone trays show every card; precise choices live in the shared zoom surface. */
+.card-surface[data-phone-overview="true"] .tray-overview-card { position: relative; }
+.tray-zoom-cue {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  right: 2px;
+  bottom: 2px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px #0006);
+}
+@media (max-height: 599px) and (min-width: 451px) {
+  body:has(.game-page) #inspector { width: min(760px, calc(100vw - 12px)); }
+  body:has(.game-page) #inspector[open] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+  body:has(.game-page) #inspection-art { grid-area: 1 / 1 / 3 / 2; height: 100%; }
+  body:has(.game-page) .inspector-top { grid-area: 1 / 2; flex-direction: column; align-items: stretch; gap: 4px; }
+  body:has(.game-page) .inspection-feedback { grid-area: 2 / 2; flex-direction: column; justify-content: end; gap: 8px; }
+  body:has(.game-page) .inspection-actions { min-width: 0; width: 100%; }
+  body:has(.game-page) .inspection-actions .game-action { width: 80px; }
+}
