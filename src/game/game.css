@@ -1,16 +1,3 @@
-.game-header {
-  max-width: none;
-  padding-inline: 4%;
-  height: 85px;
-}
-.game-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.game-header-actions .text-link {
-  margin: 0;
-}
 .game-page {
   width: 100%;
   max-width: 1540px;
@@ -240,37 +227,9 @@ body:has(.game-front) {
   overflow: hidden;
 }
 #app {
-  height: 100dvh;
+  height: var(--game-height, 100dvh);
   display: flex;
   flex-direction: column;
-}
-.game-header {
-  height: 52px;
-  min-height: 52px;
-  padding: 4px 16px;
-  flex-wrap: nowrap;
-  gap: 8px;
-}
-.game-header .wordmark {
-  font-size: 10px;
-  gap: 8px;
-}
-.game-header .wordmark b {
-  font-size: 13px;
-}
-.game-header .brand-box {
-  width: 30px;
-  height: 30px;
-}
-.game-header-actions {
-  gap: 4px;
-}
-.game-header button,
-.game-header .table-link {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px;
-  font-size: 12px;
 }
 .game-page {
   flex: 1;
@@ -845,26 +804,6 @@ body:has(.game-page) .inspection-feedback {
   }
 }
 @media (max-width: 650px) and (min-height: 600px), (max-width: 450px) {
-  .game-header {
-    padding: 3px 8px;
-    height: 48px;
-    min-height: 48px;
-  }
-  .game-header .table-link {
-    font-size: 10px;
-    padding: 4px;
-  }
-  .game-header .wordmark {
-    font-size: 8px;
-    gap: 5px;
-  }
-  .game-header .wordmark b {
-    font-size: 10px;
-  }
-  .game-header .brand-box {
-    width: 25px;
-    height: 25px;
-  }
   .play-screen {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 110px minmax(0, 1fr);
@@ -1009,11 +948,6 @@ body:has(.game-page) .inspection-feedback {
   }
 }
 @media (max-height: 599px) and (min-width: 451px) {
-  .game-header {
-    height: 44px;
-    min-height: 44px;
-    padding: 0 8px;
-  }
   .play-screen {
     --rail-width: 168px;
     gap: 8px;
@@ -1191,10 +1125,6 @@ body:has(.game-page) .inspection-feedback {
   * {
     scroll-behavior: auto;
   }
-}
-.game-header {
-  width: 100%;
-  margin: 0;
 }
 @media (max-width: 650px) and (min-height: 600px), (max-width: 450px) {
   .play-screen {
@@ -1614,7 +1544,7 @@ body:has(.game-page) .inspection-feedback {
   border: 0;
   background: none;
   border-radius: 8px;
-  font-size: 26px;
+  font-size: 12px;
   color: #263d24;
 }
 .card-action-dock .tray-pages button::before {
@@ -1881,4 +1811,165 @@ body:has(.game-page) .inspection-feedback {
   .round-score-card * {
     animation: none !important;
   }
+}
+
+/* Selection compares complete offers; only the whole card is a touch target. */
+.card-surface[data-fit-all="true"] .lucky-card .number-cell {
+  font-size: clamp(13px, 12cqw, 36px) !important;
+}
+.card-surface[data-fit-all="true"] .lucky-card .card-heading {
+  font-size: clamp(6px, 4cqw, 12px) !important;
+}
+.card-surface[data-fit-all="true"] .lucky-card .reward-slot .reward {
+  --bonus-size: clamp(12px, 14.3cqw, 50px);
+}
+.tray-overview-card {
+  padding: 0;
+  display: block;
+  min-width: 44px;
+  min-height: 44px;
+}
+.draft-comparison {
+  grid-template-columns: minmax(130px, .28fr) minmax(0, 1fr);
+}
+.draft-comparison h3 {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+@media (orientation: portrait) {
+  .draft-comparison {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(100px, .32fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+}
+/* Reclaim the side rail on tablets and medium-sized laptop windows. */
+@media (min-width: 651px) and (max-width: 1399px) and (min-height: 600px) {
+  .play-screen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 104px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .game-status {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 176px minmax(170px, 1fr);
+    gap: 12px;
+    text-align: left;
+  }
+  .game-status h1 { font-size: 28px; margin: 4px 0; }
+  .game-status .common-draw { width: 176px; height: 100px; }
+  .game-status .live-deck { width: 66px; top: 4px; left: 20px; }
+  .game-status .live-number { width: 72px; bottom: 2px; right: 12px; }
+  .game-status .draw-control { align-items: flex-end; text-align: right; gap: 0; }
+  .game-status .draw-control [data-auto-status] { min-height: 0; }
+  .game-status .countdown-burst { width: 100px; height: 100px; }
+  .game-status .countdown-burst strong { font-size: 58px; }
+  .game-status .countdown-caption { font-size: 9px; }
+  .game-status .countdown-star { width: 22px; height: 22px; }
+}
+.offer-check {
+  width: 28px;
+  height: 28px;
+  left: auto;
+  right: 6px;
+  top: 6px;
+  bottom: auto;
+  padding: 2px;
+  border-radius: 50%;
+}
+.offer-check svg { width: 20px; height: 20px; }
+.rotate-seat { font-size: 11px; }
+/* Use the full inspector surface, with the same proportional live information. */
+body:has(.game-page) #inspection-art { width: 100%; margin: 0; }
+body:has(.game-page) #inspection-art .number-cell { font-size: clamp(26px, 12cqw, 68px) !important; }
+body:has(.game-page) #inspection-art .card-heading { font-size: clamp(10px, 3.4cqw, 24px) !important; }
+body:has(.game-page) #inspection-art .reward-slot .reward { --bonus-size: clamp(34px, 14.3cqw, 90px); }
+#inspector[data-zoom="closing"] .lightning-flight-layer { display: none; }
+
+/* One anchored logo disclosure, instead of a page-wide header bar. */
+#app { position: relative; }
+.table-menu { position: absolute; top: 8px; left: 8px; z-index: 40; }
+.table-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 3px 4px;
+  text-align: left;
+  font-size: 9px;
+  line-height: 1.05;
+}
+.table-menu-toggle b { font-size: 12px; }
+.table-menu-toggle small { display: block; margin-top: 2px; font: 10px/1.1 'DM Sans', sans-serif; }
+.table-menu-toggle .brand-box { width: 30px; height: 30px; }
+.table-controls {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: min(360px, calc(100vw - 16px));
+  padding: 8px;
+  background: #fff9e9;
+  color: #263d24;
+  border: 1px solid #938c69;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #17251a40;
+}
+.table-controls[hidden] { display: none; }
+.table-controls > * {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: left;
+  border-radius: 5px;
+}
+.table-controls > :hover, .table-controls > :focus-visible { background: #e5ead7; }
+.game-front { margin-top: 0; padding-top: 60px; }
+.game-page:has(.game-lobby), .game-page:has(.connection-state) { padding-top: 60px; }
+@media (min-width: 651px) and (max-width: 1399px) and (min-height: 600px) {
+  .draw-heading { padding-top: 44px; }
+  .game-status h1 { margin: 2px 0 0; font-size: 26px; }
+}
+@media (max-width: 650px) and (min-height: 600px), (max-width: 450px) {
+  .game-status { grid-template-rows: minmax(0, 1fr) auto; }
+  .draw-heading { padding-top: 44px; align-self: start; }
+  .game-status h1 { font-size: 20px; margin: 0; }
+  .game-status .eyebrow { font-size: 9px; line-height: 1.4; }
+  .draw-control [data-auto-status] { min-height: 0; }
+  .draw-control { min-height: 18px; }
+  .play-screen:has(.results) { grid-template-rows: 168px minmax(0, 1fr); }
+}
+@media (max-height: 420px) and (min-width: 540px) {
+  .table-controls { width: min(520px, calc(100vw - 16px)); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Phone trays show every card; precise choices live in the shared zoom surface. */
+.card-surface[data-phone-overview="true"] .tray-overview-card { position: relative; }
+.tray-zoom-cue {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  right: 2px;
+  bottom: 2px;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px #0006);
+}
+@media (max-height: 599px) and (min-width: 451px) {
+  body:has(.game-page) #inspector { width: min(760px, calc(100vw - 12px)); }
+  body:has(.game-page) #inspector[open] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+  body:has(.game-page) #inspection-art { grid-area: 1 / 1 / 3 / 2; height: 100%; }
+  body:has(.game-page) .inspector-top { grid-area: 1 / 2; flex-direction: column; align-items: stretch; gap: 4px; }
+  body:has(.game-page) .inspection-feedback { grid-area: 2 / 2; flex-direction: column; justify-content: end; gap: 8px; }
+  body:has(.game-page) .inspection-actions { min-width: 0; width: 100%; }
+  body:has(.game-page) .inspection-actions .game-action { width: 80px; }
 }

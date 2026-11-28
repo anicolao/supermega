@@ -1,0 +1,61 @@
+/* The card travels first. The sheet and scrim follow it, rather than popping in. */
+dialog#inspector {
+  isolation: isolate;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+#inspector::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: #fff9e9;
+  box-shadow: 0 12px 48px #17251a66;
+  transition: opacity 120ms ease;
+}
+#inspector::backdrop {
+  background: #17251a80;
+  transition: background 120ms ease;
+}
+#inspector .inspector-top,
+#inspector .inspection-feedback,
+#inspector .inspection-note {
+  transition: opacity 120ms ease;
+}
+#inspector[data-zoom="opening"]::before,
+#inspector[data-zoom="closing"]::before,
+#inspector[data-zoom="opening"] .inspector-top,
+#inspector[data-zoom="closing"] .inspector-top,
+#inspector[data-zoom="opening"] .inspection-feedback,
+#inspector[data-zoom="closing"] .inspection-feedback,
+#inspector[data-zoom="opening"] .inspection-note,
+#inspector[data-zoom="closing"] .inspection-note {
+  opacity: 0;
+  pointer-events: none;
+}
+#inspector[data-zoom="opening"]::backdrop,
+#inspector[data-zoom="closing"]::backdrop {
+  background: transparent;
+}
+#inspector #inspection-art {
+  will-change: transform;
+}
+.card-zoom-origin {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  #inspector::before,
+  #inspector::backdrop,
+  #inspector .inspector-top,
+  #inspector .inspection-feedback,
+  #inspector .inspection-note {
+    transition: none;
+  }
+}
+
+#inspector[data-zoom="opening"],
+#inspector[data-zoom="closing"] {
+  overflow: visible !important;
+}
